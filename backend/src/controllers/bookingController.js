@@ -99,7 +99,12 @@ const createBooking = (req, res) => {
   const bookingId = uuidv4();
   let status = 'booked';
   let waitlistPosition = null;
-  const checkinCode = `BK${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  let checkinCode;
+  let codeExists = true;
+  while (codeExists) {
+    checkinCode = `BK${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    codeExists = db.prepare('SELECT id FROM bookings WHERE checkin_code = ?').get(checkinCode);
+  }
 
   const transaction = db.transaction(() => {
     if (isFull) {
@@ -310,10 +315,76 @@ const getBookingCheckinCode = (req, res) => {
   });
 };
 
+const getBookingDetail = (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  const booking = db.prepare(`
+    SELECT b.*, c.name as course_name, c.start_time, c.end_time, c.date, c.room, c.category, c.difficulty,
+      co.name as coach_name, co.avatar as coach_avatar,
+      CASE 
+        WHEN EXISTS (SELECT 1 FROM checkins ch WHERE ch.booking_id = b.id) THEN 1 
+        ELSE 0 
+      END as has_checked_in
+    FROM bookings b
+    LEFT JOIN courses c ON b.course_id = c.id
+    LEFT JOIN coaches co ON c.coach_id = co.id
+    WHERE b.id = ? AND b.user_id = ?
+  `).get(id, userId);
+
+  if (!booking) {
+    return res.status(404).json({ success: false, message: '预约记录不存在' });
+  }
+
+  const result = {
+    ...booking,
+    course_date: booking.date,
+    status: booking.has_checked_in ? 'checked_in' : booking.status
+  };
+
+  if (booking.has_checked_in) {
+    const checkin = db.prepare(`
+      SELECT ch.*, mc.name as card_name
+      FROM checkins ch
+      LEFT JOIN membership_cards mc ON ch.card_id = mc.id
+      WHERE ch.booking_id = ?
+    `).get(booking.id);
+
+    if (checkin) {
+      result.checkin_info = {
+        id: checkin.id,
+        checkin_time: checkin.checkin_time,
+        checkin_method: checkin.checkin_method,
+        card_id: checkin.card_id,
+        card_name: checkin.card_name || '团课卡'
+      };
+
+      const transaction = db.prepare(`
+        SELECT * FROM card_transactions WHERE related_booking_id = ? AND related_checkin_id = ?
+      `).get(booking.id, checkin.id);
+
+      if (transaction) {
+        result.checkin_info.transaction = {
+          id: transaction.id,
+          change_amount: transaction.change_amount,
+          balance_after: transaction.balance_after,
+          created_at: transaction.created_at
+        };
+      }
+    }
+  }
+
+  res.json({
+    success: true,
+    data: result
+  });
+};
+
 module.exports = {
   getBookings,
   createBooking,
   cancelBooking,
   getCourseBookings,
-  getBookingCheckinCode
+  getBookingCheckinCode,
+  getBookingDetail
 };

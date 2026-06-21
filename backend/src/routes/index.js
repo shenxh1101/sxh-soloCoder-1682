@@ -14,7 +14,8 @@ const {
   createBooking, 
   cancelBooking,
   getCourseBookings,
-  getBookingCheckinCode
+  getBookingCheckinCode,
+  getBookingDetail
 } = require('../controllers/bookingController');
 const { 
   checkin, 
@@ -52,6 +53,7 @@ router.get('/bookings', authMiddleware, getBookings);
 router.post('/bookings', authMiddleware, createBooking);
 router.post('/bookings/:id/cancel', authMiddleware, cancelBooking);
 router.get('/bookings/:id/checkin-code', authMiddleware, getBookingCheckinCode);
+router.get('/bookings/:id/detail', authMiddleware, getBookingDetail);
 
 router.get('/courses/:courseId/bookings', authMiddleware, adminMiddleware, getCourseBookings);
 router.post('/courses', authMiddleware, adminMiddleware, createCourse);

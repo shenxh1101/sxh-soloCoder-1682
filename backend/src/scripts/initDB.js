@@ -103,7 +103,7 @@ const initDB = () => {
       course_id TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'booked',
       waitlist_position INTEGER,
-      checkin_code TEXT,
+      checkin_code TEXT UNIQUE,
       booked_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
       cancelled_at TEXT,
       FOREIGN KEY (user_id) REFERENCES users(id),
@@ -244,8 +244,8 @@ const initDB = () => {
   console.log('生成预约和签到记录...');
   const memberIds = ['u1', 'u2', 'u3', 'u4', 'u5'];
   const insertBooking = db.prepare(`
-    INSERT INTO bookings (id, user_id, course_id, status, waitlist_position, booked_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO bookings (id, user_id, course_id, status, waitlist_position, checkin_code, booked_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   const insertCheckin = db.prepare(`
@@ -320,8 +320,9 @@ const initDB = () => {
       const userId = memberIds[(i + bookedCount) % memberIds.length];
       const bookingId = uuidv4();
       const bookedAt = dayjs(course.date).subtract(1, 'day').format('YYYY-MM-DD HH:mm:ss');
+      const checkinCode = `BK${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       
-      insertBooking.run(bookingId, userId, course.id, 'waitlist', i + 1, bookedAt);
+      insertBooking.run(bookingId, userId, course.id, 'waitlist', i + 1, checkinCode, bookedAt);
       updateCourseWaitlist.run(course.id);
     }
   }
@@ -334,8 +335,9 @@ const initDB = () => {
       const userId = memberIds[i];
       const bookingId = uuidv4();
       const bookedAt = dayjs().subtract(1 + Math.floor(Math.random() * 2), 'day').format('YYYY-MM-DD HH:mm:ss');
+      const checkinCode = `BK${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       
-      insertBooking.run(bookingId, userId, course.id, 'booked', null, bookedAt);
+      insertBooking.run(bookingId, userId, course.id, 'booked', null, checkinCode, bookedAt);
       updateCourseBooked.run(course.id);
       totalBookings++;
     }

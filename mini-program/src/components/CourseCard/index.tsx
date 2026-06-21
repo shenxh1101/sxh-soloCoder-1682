@@ -10,6 +10,7 @@ interface CourseCardProps {
   course: Course;
   isBooked?: boolean;
   isWaitlisted?: boolean;
+  isCheckedIn?: boolean;
   onBook?: () => void;
   onWaitlist?: () => void;
   onDetail?: () => void;
@@ -19,6 +20,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   course,
   isBooked = false,
   isWaitlisted = false,
+  isCheckedIn = false,
   onBook,
   onWaitlist,
   onDetail
@@ -67,7 +69,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
             src={course.coachAvatar} 
             mode="aspectFill"
           />
-          <Text className={styles.coachName}>{course.coach}</Text>
+          <Text className={styles.coachName}>{course.coachName}</Text>
           <Text className={styles.room}>{course.room}</Text>
         </View>
       </View>
@@ -87,14 +89,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
 
         <Button
           className={classnames(styles.bookButton, {
-            [styles.booked]: isBooked,
+            [styles.booked]: isBooked || isCheckedIn,
             [styles.waitlisted]: isWaitlisted,
             [styles.full]: full && !isWaitlisted
           })}
           onClick={handleBook}
-          disabled={isBooked}
+          disabled={isBooked || isWaitlisted || isCheckedIn}
         >
-          {isBooked ? '已预约' : isWaitlisted ? '候补中' : full ? '候补' : '约课'}
+          {isCheckedIn ? '已签到' : isBooked ? '已预约' : isWaitlisted ? '候补中' : full ? '候补' : '约课'}
         </Button>
       </View>
     </View>

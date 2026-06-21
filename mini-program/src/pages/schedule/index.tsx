@@ -42,8 +42,9 @@ const SchedulePage: React.FC = () => {
         id: c.id,
         name: c.name,
         coachId: c.coach_id,
-        coachName: c.coach_name,
-        coachAvatar: c.coach_avatar,
+        coachName: c.coach_name || '待定',
+        coachAvatar: c.coach_avatar || '',
+        coachBio: c.coach_bio || '',
         date: c.date,
         startTime: c.start_time,
         endTime: c.end_time,
@@ -51,10 +52,10 @@ const SchedulePage: React.FC = () => {
         capacity: c.capacity,
         bookedCount: c.booked_count,
         waitlistCount: c.waitlist_count,
-        description: c.description,
-        difficulty: c.difficulty,
-        category: c.category,
-        room: c.room
+        description: c.description || '',
+        difficulty: c.difficulty || 'medium',
+        category: c.category || '',
+        room: c.room || ''
       })));
     } catch (error) {
       console.error('Load courses error:', error);
@@ -71,7 +72,21 @@ const SchedulePage: React.FC = () => {
     
     try {
       const data = await bookingAPI.getBookings();
-      setBookings(data.list || data || []);
+      const list = data.list || data || [];
+      setBookings(list.map((b: any) => ({
+        id: b.id,
+        courseId: b.course_id,
+        courseName: b.course_name,
+        coachName: b.coach_name || '待定',
+        coachAvatar: b.coach_avatar || '',
+        courseDate: b.course_date || b.date,
+        startTime: b.start_time,
+        endTime: b.end_time,
+        status: b.has_checked_in === 1 ? 'checked_in' : b.status,
+        waitlistPosition: b.waitlist_position,
+        bookedAt: b.booked_at,
+        room: b.room || ''
+      })));
     } catch (error) {
       console.error('Load bookings error:', error);
     }
@@ -83,7 +98,7 @@ const SchedulePage: React.FC = () => {
     }
     loadCourses();
     loadBookings();
-  });
+  }, [selectedDate]);
 
   const dayCourses = useMemo(() => {
     return courses
@@ -91,15 +106,21 @@ const SchedulePage: React.FC = () => {
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [courses, selectedDate]);
 
-  const bookedIds = useMemo(() => {
+  const bookedCourseIds = useMemo(() => {
     return bookings
       .filter(b => b.status === 'booked')
       .map(b => b.courseId);
   }, [bookings]);
 
-  const waitlistIds = useMemo(() => {
+  const waitlistCourseIds = useMemo(() => {
     return bookings
       .filter(b => b.status === 'waitlist')
+      .map(b => b.courseId);
+  }, [bookings]);
+
+  const checkedInCourseIds = useMemo(() => {
+    return bookings
+      .filter(b => b.status === 'checked_in')
       .map(b => b.courseId);
   }, [bookings]);
 
@@ -120,8 +141,7 @@ const SchedulePage: React.FC = () => {
         icon: 'success',
         duration: 2000
       });
-      loadCourses();
-      loadBookings();
+      await Promise.all([loadCourses(), loadBookings()]);
     } catch (error) {
       console.error('Book course error:', error);
     }
@@ -140,8 +160,7 @@ const SchedulePage: React.FC = () => {
         icon: 'success',
         duration: 2000
       });
-      loadCourses();
-      loadBookings();
+      await Promise.all([loadCourses(), loadBookings()]);
     } catch (error) {
       console.error('Join waitlist error:', error);
     }
@@ -193,8 +212,9 @@ const SchedulePage: React.FC = () => {
               <CourseCard
                 key={course.id}
                 course={course}
-                isBooked={bookedIds.includes(course.id)}
-                isWaitlisted={waitlistIds.includes(course.id)}
+                isBooked={bookedCourseIds.includes(course.id)}
+                isWaitlisted={waitlistCourseIds.includes(course.id)}
+                isCheckedIn={checkedInCourseIds.includes(course.id)}
                 onBook={() => handleBook(course.id)}
                 onWaitlist={() => handleWaitlist(course.id)}
                 onDetail={() => goToDetail(course.id)}

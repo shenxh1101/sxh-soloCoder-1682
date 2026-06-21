@@ -586,26 +586,21 @@
       <div id="scanPage" class="page-content">
         <div class="card">
           <h2>扫码签到</h2>
-          <p style="color:#86909c; margin-bottom:16px; font-size:14px;">输入签到码或扫码识别课程，选择会员完成签到</p>
+          <p style="color:#86909c; margin-bottom:16px; font-size:14px;">扫描会员预约码，自动识别会员和课程并完成签到</p>
           
           <div class="scan-input-row">
-            <input type="text" id="scanCode" class="scan-input" placeholder="输入签到码（如 CKABC123）" onkeyup="if(event.key==='Enter') scanCheckin()">
-            <button class="btn btn-primary" onclick="scanCheckin()">识别签到码</button>
-          </div>
-
-          <div id="scanCourseInfo" style="display:none;">
-            <div class="card" style="background:#f8f9fa; margin-bottom:16px;">
-              <h3 id="scanCourseName" style="margin-bottom:8px;"></h3>
-              <p id="scanCourseTime" style="color:#86909c; font-size:14px;"></p>
-            </div>
-            
-            <h3 style="margin-bottom:12px;">选择会员签到</h3>
-            <div id="scanMemberList">
-              <div class="empty-state">暂无预约会员</div>
-            </div>
+            <input type="text" id="scanCode" class="scan-input" placeholder="输入会员预约码（如 BKABC123）" onkeyup="if(event.key==='Enter') scanBookingCheckin()">
+            <button class="btn btn-primary" onclick="scanBookingCheckin()">扫码签到</button>
           </div>
 
           <div id="scanResult" style="display:none;"></div>
+
+          <div id="scanHistory" style="margin-top:24px;">
+            <h3 style="margin-bottom:12px;">今日扫码记录</h3>
+            <div id="scanHistoryList">
+              <div class="empty-state">暂无扫码记录</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -786,6 +781,7 @@
       document.getElementById(`${tab}Page`).classList.add('active');
 
       if (tab === 'checkin') loadTodayCourses();
+      if (tab === 'scan') loadScanHistory();
       if (tab === 'courses') loadCourseList();
       if (tab === 'stats') { loadWeeklyStats(); loadCoachStats(); }
       if (tab === 'members') loadMembers();
@@ -1001,67 +997,92 @@
       document.getElementById('qrcodeModal').classList.remove('active');
     }
 
-    async function scanCheckin() {
+    async function scanBookingCheckin() {
       const code = document.getElementById('scanCode').value.trim();
+      const resultEl = document.getElementById('scanResult');
       
       if (!code) {
-        alert('请输入签到码');
+        alert('请输入会员预约码');
         return;
       }
 
       try {
-        const data = await apiCall('/checkins/scan', {
+        const data = await apiCall('/checkins/scan-booking', {
           method: 'POST',
           body: JSON.stringify({ code })
         });
 
         if (data.success) {
-          currentScanCourseId = data.data.courseId;
-          document.getElementById('scanCourseInfo').style.display = 'block';
-          document.getElementById('scanCourseName').textContent = data.data.courseName;
-          document.getElementById('scanCourseTime').textContent = `${data.data.date} ${data.data.startTime} - ${data.data.endTime} | ${data.data.room}`;
+          resultEl.style.display = 'block';
           
-          loadScanMembers(data.data.courseId);
+          if (data.alreadyCheckedIn) {
+            resultEl.innerHTML = `
+              <div class="checkin-result warning">
+                <div class="checkin-result-icon">⚠️</div>
+                <div class="checkin-result-title">已签到</div>
+                <div class="checkin-result-info">
+                  <strong>${data.data.user_name}</strong>（${data.data.user_phone || ''}）<br>
+                  ${data.data.course_name} · ${data.data.course_date} ${data.data.course_time}<br>
+                  签到时间：${data.data.checkin_time}
+                </div>
+              </div>
+            `;
+          } else {
+            resultEl.innerHTML = `
+              <div class="checkin-result success">
+                <div class="checkin-result-icon">✅</div>
+                <div class="checkin-result-title">签到成功</div>
+                <div class="checkin-result-info">
+                  <strong>${data.data.user_name}</strong>（${data.data.user_phone || ''}）<br>
+                  ${data.data.course_name} · ${data.data.course_date} ${data.data.course_time}<br>
+                  已扣除1次团课
+                </div>
+              </div>
+            `;
+          }
+          
+          document.getElementById('scanCode').value = '';
+          loadScanHistory();
+          
+          setTimeout(() => {
+            resultEl.style.display = 'none';
+          }, 5000);
         } else {
           alert(data.message);
         }
       } catch (error) {
-        alert('识别签到码失败');
+        alert('扫码签到失败：' + (error.message || '未知错误'));
       }
     }
 
-    async function loadScanMembers(courseId) {
-      const listEl = document.getElementById('scanMemberList');
+    async function loadScanHistory() {
+      const listEl = document.getElementById('scanHistoryList');
       
       try {
-        const data = await apiCall(`/courses/${courseId}/bookings`);
-        const bookings = data.data.filter(b => b.status === 'booked' || b.status === 'checked_in');
+        const data = await apiCall('/checkins/today');
+        const checkins = data.data || [];
         
-        if (bookings.length === 0) {
-          listEl.innerHTML = '<div class="empty-state">暂无预约会员</div>';
+        if (checkins.length === 0) {
+          listEl.innerHTML = '<div class="empty-state">暂无扫码记录</div>';
           return;
         }
 
-        let html = '<table><thead><tr><th>会员</th><th>手机号</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+        const scanCheckins = checkins.filter(c => c.checkin_method === 'scan');
         
-        bookings.forEach(b => {
-          const isChecked = b.status === 'checked_in';
+        if (scanCheckins.length === 0) {
+          listEl.innerHTML = '<div class="empty-state">暂无扫码记录</div>';
+          return;
+        }
+
+        let html = '<table><thead><tr><th>会员</th><th>课程</th><th>时间</th><th>方式</th></tr></thead><tbody>';
+        
+        scanCheckins.forEach(c => {
           html += `
             <tr>
-              <td>${b.user_name}</td>
-              <td>${b.phone}</td>
-              <td>
-                <span class="badge ${isChecked ? 'badge-success' : 'badge-info'}">
-                  ${isChecked ? '已签到' : '待签到'}
-                </span>
-              </td>
-              <td>
-                <button class="btn btn-primary" 
-                  ${isChecked ? 'disabled' : ''}
-                  onclick="scanConfirmCheckin('${b.user_id}')">
-                  ${isChecked ? '已签到' : '确认签到'}
-                </button>
-              </td>
+              <td>${c.user_name}</td>
+              <td>${c.course_name} ${c.start_time || ''}</td>
+              <td>${c.checkin_time ? new Date(c.checkin_time).toLocaleTimeString() : ''}</td>
+              <td><span class="badge badge-success">扫码</span></td>
             </tr>
           `;
         });
@@ -1070,49 +1091,6 @@
         listEl.innerHTML = html;
       } catch (error) {
         listEl.innerHTML = '<div class="empty-state">加载失败</div>';
-      }
-    }
-
-    async function scanConfirmCheckin(userId) {
-      const code = document.getElementById('scanCode').value.trim();
-      
-      try {
-        const data = await apiCall('/checkins/scan-confirm', {
-          method: 'POST',
-          body: JSON.stringify({ code, userId })
-        });
-
-        if (data.success) {
-          const resultEl = document.getElementById('scanResult');
-          if (data.alreadyCheckedIn) {
-            resultEl.innerHTML = `
-              <div class="checkin-result warning">
-                <div class="checkin-result-icon">⚠️</div>
-                <div class="checkin-result-title">已签到</div>
-                <div class="checkin-result-info">${data.data.user_name} 已在 ${data.data.checkin_time} 完成签到</div>
-              </div>
-            `;
-          } else {
-            resultEl.innerHTML = `
-              <div class="checkin-result success">
-                <div class="checkin-result-icon">✅</div>
-                <div class="checkin-result-title">签到成功</div>
-                <div class="checkin-result-info">${data.data.user_name} - ${data.data.course_name}<br>已扣除1次团课</div>
-              </div>
-            `;
-          }
-          resultEl.style.display = 'block';
-          
-          setTimeout(() => {
-            resultEl.style.display = 'none';
-          }, 3000);
-          
-          loadScanMembers(currentScanCourseId);
-        } else {
-          alert(data.message);
-        }
-      } catch (error) {
-        alert('签到失败');
       }
     }
 

@@ -131,7 +131,7 @@ export const bookingAPI = {
 
   getBookingDetail: (bookingId: string) => {
     return request<any>({
-      url: `/bookings/${bookingId}`
+      url: `/bookings/${bookingId}/detail`
     });
   }
 };

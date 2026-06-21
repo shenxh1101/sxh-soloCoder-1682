@@ -1,8 +1,10 @@
 export interface Course {
   id: string;
   name: string;
-  coach: string;
+  coachId?: string;
+  coachName: string;
   coachAvatar: string;
+  coachBio?: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -20,14 +22,19 @@ export interface Booking {
   id: string;
   courseId: string;
   courseName: string;
-  coach: string;
-  date: string;
+  coachName: string;
+  coachAvatar?: string;
+  courseDate: string;
   startTime: string;
   endTime: string;
   status: 'booked' | 'waitlist' | 'checked_in' | 'cancelled' | 'missed';
   bookedAt: string;
+  cancelledAt?: string;
   waitlistPosition?: number;
   room: string;
+  hasCheckedIn?: number;
+  checkinTime?: string;
+  checkinMethod?: string;
 }
 
 export interface User {
