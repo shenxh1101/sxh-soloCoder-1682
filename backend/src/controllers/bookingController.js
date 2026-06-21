@@ -1,0 +1,238 @@
+const db = require('../db');
+const { v4: uuidv4 } = require('uuid');
+const dayjs = require('dayjs');
+
+const getBookings = (req, res) => {
+  const userId = req.user.id;
+  const { status, courseId } = req.query;
+
+  let query = `
+    SELECT b.*, c.name as course_name, c.start_time, c.end_time, c.date, c.room, co.name as coach_name
+    FROM bookings b
+    LEFT JOIN courses c ON b.course_id = c.id
+    LEFT JOIN coaches co ON c.coach_id = co.id
+    WHERE b.user_id = ?
+  `;
+  
+  const params = [userId];
+
+  if (status) {
+    query += ' AND b.status = ?';
+    params.push(status);
+  }
+
+  if (courseId) {
+    query += ' AND b.course_id = ?';
+    params.push(courseId);
+  }
+
+  query += ' ORDER BY c.date DESC, c.start_time DESC';
+
+  const bookings = db.prepare(query).all(...params);
+
+  res.json({
+    success: true,
+    data: bookings
+  });
+};
+
+const createBooking = (req, res) => {
+  const userId = req.user.id;
+  const { courseId } = req.body;
+
+  if (!courseId) {
+    return res.status(400).json({ success: false, message: '请选择课程' });
+  }
+
+  const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(courseId);
+  
+  if (!course) {
+    return res.status(404).json({ success: false, message: '课程不存在' });
+  }
+
+  if (course.status !== 'scheduled') {
+    return res.status(400).json({ success: false, message: '课程不可预约' });
+  }
+
+  const courseDateTime = dayjs(`${course.date} ${course.start_time}`);
+  if (courseDateTime.isBefore(dayjs())) {
+    return res.status(400).json({ success: false, message: '课程已开始，无法预约' });
+  }
+
+  const existingBooking = db.prepare(
+    "SELECT id FROM bookings WHERE user_id = ? AND course_id = ? AND status IN ('booked', 'waitlist')"
+  ).get(userId, courseId);
+
+  if (existingBooking) {
+    return res.status(400).json({ success: false, message: '您已预约该课程' });
+  }
+
+  const card = db.prepare(
+    "SELECT * FROM membership_cards WHERE user_id = ? AND status = 'active' AND remaining_classes > 0 ORDER BY remaining_classes ASC LIMIT 1"
+  ).get(userId);
+
+  const isFull = course.booked_count >= course.capacity;
+
+  if (!isFull && !card) {
+    return res.status(400).json({ success: false, message: '剩余团课次数不足，请先充值' });
+  }
+
+  const bookingId = uuidv4();
+  let status = 'booked';
+  let waitlistPosition = null;
+
+  const transaction = db.transaction(() => {
+    if (isFull) {
+      status = 'waitlist';
+      waitlistPosition = course.waitlist_count + 1;
+      
+      db.prepare(`
+        INSERT INTO bookings (id, user_id, course_id, status, waitlist_position)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(bookingId, userId, courseId, status, waitlistPosition);
+
+      db.prepare('UPDATE courses SET waitlist_count = waitlist_count + 1 WHERE id = ?').run(courseId);
+    } else {
+      db.prepare(`
+        INSERT INTO bookings (id, user_id, course_id, status)
+        VALUES (?, ?, ?, ?)
+      `).run(bookingId, userId, courseId, status);
+
+      db.prepare('UPDATE courses SET booked_count = booked_count + 1 WHERE id = ?').run(courseId);
+      
+      db.prepare(
+        'UPDATE membership_cards SET remaining_classes = remaining_classes - 1 WHERE id = ?'
+      ).run(card.id);
+    }
+  });
+
+  transaction();
+
+  const booking = db.prepare(`
+    SELECT b.*, c.name as course_name, c.start_time, c.end_time, c.date, c.room
+    FROM bookings b
+    LEFT JOIN courses c ON b.course_id = c.id
+    WHERE b.id = ?
+  `).get(bookingId);
+
+  res.json({
+    success: true,
+    message: isFull ? `已加入候补队列，当前第${waitlistPosition}位` : '预约成功',
+    data: booking
+  });
+};
+
+const cancelBooking = (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  const booking = db.prepare(`
+    SELECT b.*, c.date, c.start_time, c.capacity
+    FROM bookings b
+    LEFT JOIN courses c ON b.course_id = c.id
+    WHERE b.id = ? AND b.user_id = ?
+  `).get(id, userId);
+
+  if (!booking) {
+    return res.status(404).json({ success: false, message: '预约记录不存在' });
+  }
+
+  if (booking.status !== 'booked' && booking.status !== 'waitlist') {
+    return res.status(400).json({ success: false, message: '该状态无法取消' });
+  }
+
+  const courseDateTime = dayjs(`${booking.date} ${booking.start_time}`);
+  const hoursDiff = courseDateTime.diff(dayjs(), 'hour');
+  
+  if (hoursDiff < 2 && booking.status === 'booked') {
+    return res.status(400).json({ success: false, message: '开课前2小时内无法取消预约' });
+  }
+
+  const transaction = db.transaction(() => {
+    db.prepare(
+      "UPDATE bookings SET status = 'cancelled', cancelled_at = datetime('now', 'localtime') WHERE id = ?"
+    ).run(id);
+
+    if (booking.status === 'booked') {
+      db.prepare('UPDATE courses SET booked_count = booked_count - 1 WHERE id = ?').run(booking.course_id);
+      
+      const card = db.prepare(
+        "SELECT id FROM membership_cards WHERE user_id = ? AND status = 'active' ORDER BY remaining_classes ASC LIMIT 1"
+      ).get(userId);
+      
+      if (card) {
+        db.prepare('UPDATE membership_cards SET remaining_classes = remaining_classes + 1 WHERE id = ?').run(card.id);
+      }
+
+      const firstWaitlist = db.prepare(`
+        SELECT id, user_id FROM bookings 
+        WHERE course_id = ? AND status = 'waitlist' 
+        ORDER BY waitlist_position ASC LIMIT 1
+      `).get(booking.course_id);
+
+      if (firstWaitlist) {
+        const userCard = db.prepare(
+          "SELECT id FROM membership_cards WHERE user_id = ? AND status = 'active' AND remaining_classes > 0 LIMIT 1"
+        ).get(firstWaitlist.user_id);
+
+        if (userCard) {
+          db.prepare("UPDATE bookings SET status = 'booked', waitlist_position = NULL WHERE id = ?").run(firstWaitlist.id);
+          db.prepare('UPDATE courses SET booked_count = booked_count + 1, waitlist_count = waitlist_count - 1 WHERE id = ?').run(booking.course_id);
+          db.prepare('UPDATE membership_cards SET remaining_classes = remaining_classes - 1 WHERE id = ?').run(userCard.id);
+          
+          db.prepare(
+            'UPDATE bookings SET waitlist_position = waitlist_position - 1 WHERE course_id = ? AND status = ? AND waitlist_position > ?'
+          ).run(booking.course_id, 'waitlist', 1);
+        }
+      }
+    } else if (booking.status === 'waitlist') {
+      db.prepare('UPDATE courses SET waitlist_count = waitlist_count - 1 WHERE id = ?').run(booking.course_id);
+      
+      db.prepare(
+        'UPDATE bookings SET waitlist_position = waitlist_position - 1 WHERE course_id = ? AND status = ? AND waitlist_position > ?'
+      ).run(booking.course_id, 'waitlist', booking.waitlist_position);
+    }
+  });
+
+  transaction();
+
+  res.json({
+    success: true,
+    message: '取消成功，名额已释放'
+  });
+};
+
+const getCourseBookings = (req, res) => {
+  const { courseId } = req.params;
+  const { status } = req.query;
+
+  let query = `
+    SELECT b.*, u.name as user_name, u.phone, u.avatar
+    FROM bookings b
+    LEFT JOIN users u ON b.user_id = u.id
+    WHERE b.course_id = ?
+  `;
+  
+  const params = [courseId];
+
+  if (status) {
+    query += ' AND b.status = ?';
+    params.push(status);
+  }
+
+  query += ' ORDER BY b.booked_at ASC';
+
+  const bookings = db.prepare(query).all(...params);
+
+  res.json({
+    success: true,
+    data: bookings
+  });
+};
+
+module.exports = {
+  getBookings,
+  createBooking,
+  cancelBooking,
+  getCourseBookings
+};

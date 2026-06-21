@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitStudio 教练管理后台</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6f7;
+      color: #1d2129;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%);
+      color: white;
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .header .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 24px;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      background: white;
+      padding: 8px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    .tab-btn {
+      padding: 12px 24px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #4e5969;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn.active {
+      background: #FF6B35;
+      color: white;
+      font-weight: 500;
+    }
+    
+    .tab-btn:hover:not(.active) {
+      background: #f2f3f5;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+    }
+    
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #1d2129;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    .stat-card .label {
+      font-size: 14px;
+      color: #86909c;
+      margin-bottom: 8px;
+    }
+    
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #FF6B35;
+    }
+    
+    .stat-card.success .value { color: #00B42A; }
+    .stat-card.warning .value { color: #FF7D00; }
+    .stat-card.error .value { color: #F53F3F; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #f2f3f5;
+    }
+    
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      font-size: 14px;
+      color: #4e5969;
+    }
+    
+    td {
+      font-size: 14px;
+    }
+    
+    tr:hover {
+      background: #f8f9fa;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #FF6B35;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #E55A2B;
+    }
+    
+    .btn-success {
+      background: #00B42A;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #009a23;
+    }
+    
+    .btn-secondary {
+      background: #f2f3f5;
+      color: #4e5969;
+    }
+    
+    .btn-secondary:hover {
+      background: #e5e6eb;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .badge-success { background: #e8ffea; color: #00B42A; }
+    .badge-warning { background: #fff4e6; color: #FF7D00; }
+    .badge-error { background: #ffece8; color: #F53F3F; }
+    .badge-info { background: #e8f7ff; color: #00B4D8; }
+    .badge-default { background: #f2f3f5; color: #86909c; }
+    
+    .date-picker {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .date-picker input {
+      padding: 8px 12px;
+      border: 1px solid #e5e6eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%);
+    }
+    
+    .login-card {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      width: 360px;
+    }
+    
+    .login-card h1 {
+      text-align: center;
+      color: #FF6B35;
+      margin-bottom: 8px;
+    }
+    
+    .login-card .subtitle {
+      text-align: center;
+      color: #86909c;
+      margin-bottom: 32px;
+      font-size: 14px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #4e5969;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e5e6eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #FF6B35;
+    }
+    
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%);
+      color: white;
+      border: none;
+      border-radius: 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .login-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255,107,53,0.4);
+    }
+    
+    .error-msg {
+      color: #F53F3F;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    
+    .page-content {
+      display: none;
+    }
+    
+    .page-content.active {
+      display: block;
+    }
+    
+    .course-selector {
+      margin-bottom: 20px;
+    }
+    
+    .course-selector select {
+      padding: 10px 16px;
+      border: 1px solid #e5e6eb;
+      border-radius: 8px;
+      font-size: 14px;
+      min-width: 300px;
+    }
+    
+    .action-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #86909c;
+    }
+    
+    .export-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="loginPage" class="login-page">
+    <div class="login-card">
+      <h1>FitStudio</h1>
+      <p class="subtitle">教练管理后台</p>
+      <div class="form-group">
+        <label>账号</label>
+        <input type="text" id="loginPhone" placeholder="请输入账号" value="admin">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" placeholder="请输入密码" value="admin123">
+      </div>
+      <div id="loginError" class="error-msg" style="display:none;"></div>
+      <button class="login-btn" onclick="handleLogin()">登 录</button>
+    </div>
+  </div>
+
+  <div id="mainApp" style="display:none;">
+    <div class="header">
+      <h1>FitStudio 教练管理后台</h1>
+      <div class="user-info">
+        <span id="userName">管理员</span>
+        <button class="btn btn-secondary" onclick="handleLogout()" style="padding: 6px 16px;">退出</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('checkin')">签到管理</button>
+        <button class="tab-btn" onclick="switchTab('courses')">课程管理</button>
+        <button class="tab-btn" onclick="switchTab('stats')">数据统计</button>
+        <button class="tab-btn" onclick="switchTab('members')">会员管理</button>
+      </div>
+
+      <div id="checkinPage" class="page-content active">
+        <div class="card">
+          <h2>今日课程签到</h2>
+          <div class="course-selector">
+            <select id="courseSelect" onchange="loadCourseBookings()">
+              <option value="">选择今日课程...</option>
+            </select>
+          </div>
+          
+          <div id="checkinActions" class="action-bar" style="display:none;">
+            <button class="btn btn-primary" onclick="batchCheckin()">批量签到已选</button>
+            <button class="btn btn-secondary" onclick="selectAll()">全选</button>
+            <button class="btn btn-secondary" onclick="selectNone()">取消全选</button>
+            <span id="selectedCount" style="margin-left:auto; color:#86909c; font-size:14px;">已选 0 人</span>
+          </div>
+
+          <div id="bookingsList">
+            <div class="empty-state">请选择课程查看预约名单</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="coursesPage" class="page-content">
+        <div class="card">
+          <div class="export-section">
+            <h2>本周课程</h2>
+            <button class="btn btn-primary" onclick="exportStats()">导出出席统计表</button>
+          </div>
+          <div class="date-picker">
+            <input type="date" id="statsStartDate" onchange="loadCourseList()">
+            <span>至</span>
+            <input type="date" id="statsEndDate" onchange="loadCourseList()">
+          </div>
+          <div id="coursesTable">
+            <div class="empty-state">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="statsPage" class="page-content">
+        <div class="card">
+          <h2>本周数据概览</h2>
+          <div id="weeklyStats">
+            <div class="empty-state">加载中...</div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h2>教练课时统计</h2>
+          <div id="coachStats">
+            <div class="empty-state">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="membersPage" class="page-content">
+        <div class="card">
+          <h2>会员列表</h2>
+          <div class="date-picker">
+            <input type="text" id="memberSearch" placeholder="搜索会员姓名或手机号..." onkeyup="searchMembers()">
+          </div>
+          <div id="membersList">
+            <div class="empty-state">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+    let token = localStorage.getItem('token');
+    let currentTab = 'checkin';
+    let selectedMembers = new Set();
+
+    if (token) {
+      showMainApp();
+    }
+
+    async function apiCall(url, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}${url}`, {
+          ...options,
+          headers
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok && res.status === 401) {
+          handleLogout();
+          throw new Error('登录已过期');
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+      }
+    }
+
+    async function handleLogin() {
+      const phone = document.getElementById('loginPhone').value;
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+
+      if (!phone || !password) {
+        errorEl.textContent = '请输入账号和密码';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      try {
+        const data = await apiCall('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ phone, password })
+        });
+
+        if (data.success) {
+          token = data.data.token;
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(data.data.user));
+          showMainApp();
+        } else {
+          errorEl.textContent = data.message;
+          errorEl.style.display = 'block';
+        }
+      } catch (error) {
+        errorEl.textContent = '登录失败，请稍后重试';
+        errorEl.style.display = 'block';
+      }
+    }
+
+    function handleLogout() {
+      token = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      document.getElementById('loginPage').style.display = 'flex';
+      document.getElementById('mainApp').style.display = 'none';
+    }
+
+    function showMainApp() {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      document.getElementById('userName').textContent = user.name || '管理员';
+
+      loadTodayCourses();
+      loadCourseList();
+      loadWeeklyStats();
+      loadCoachStats();
+      loadMembers();
+      initDatePickers();
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      document.querySelectorAll('.page-content').forEach(page => {
+        page.classList.remove('active');
+      });
+      document.getElementById(`${tab}Page`).classList.add('active');
+
+      if (tab === 'checkin') loadTodayCourses();
+      if (tab === 'courses') loadCourseList();
+      if (tab === 'stats') { loadWeeklyStats(); loadCoachStats(); }
+      if (tab === 'members') loadMembers();
+    }
+
+    function initDatePickers() {
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+      const fmt = d => d.toISOString().split('T')[0];
+      
+      document.getElementById('statsStartDate').value = fmt(startOfWeek);
+      document.getElementById('statsEndDate').value = fmt(endOfWeek);
+    }
+
+    async function loadTodayCourses() {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const data = await apiCall(`/courses?date=${today}`);
+        
+        const select = document.getElementById('courseSelect');
+        select.innerHTML = '<option value="">选择今日课程...</option>';
+        
+        data.data.forEach(course => {
+          const option = document.createElement('option');
+          option.value = course.id;
+          option.textContent = `${course.start_time}-${course.end_time} ${course.name} (${course.coach_name})`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('加载课程失败', error);
+      }
+    }
+
+    async function loadCourseBookings() {
+      const courseId = document.getElementById('courseSelect').value;
+      const listEl = document.getElementById('bookingsList');
+      const actionsEl = document.getElementById('checkinActions');
+      
+      selectedMembers.clear();
+      updateSelectedCount();
+
+      if (!courseId) {
+        listEl.innerHTML = '<div class="empty-state">请选择课程查看预约名单</div>';
+        actionsEl.style.display = 'none';
+        return;
+      }
+
+      try {
+        const data = await apiCall(`/courses/${courseId}/bookings`);
+        const bookings = data.data.filter(b => b.status === 'booked' || b.status === 'checked_in');
+        
+        if (bookings.length === 0) {
+          listEl.innerHTML = '<div class="empty-state">暂无预约</div>';
+          actionsEl.style.display = 'none';
+          return;
+        }
+
+        actionsEl.style.display = 'flex';
+
+        let html = '<table><thead><tr><th><input type="checkbox" class="checkbox" id="selectAllBox" onchange="toggleSelectAll()"></th><th>会员</th><th>手机号</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+        
+        bookings.forEach(b => {
+          const isChecked = b.status === 'checked_in';
+          html += `
+            <tr>
+              <td>
+                <input type="checkbox" class="checkbox member-checkbox" 
+                  value="${b.user_id}" 
+                  ${isChecked ? 'checked disabled' : ''}
+                  onchange="toggleMember('${b.user_id}')">
+              </td>
+              <td>${b.user_name}</td>
+              <td>${b.phone}</td>
+              <td>
+                <span class="badge ${isChecked ? 'badge-success' : 'badge-info'}">
+                  ${isChecked ? '已签到' : '待签到'}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-success" 
+                  ${isChecked ? 'disabled' : ''}
+                  onclick="singleCheckin('${b.id}')">
+                  ${isChecked ? '已签到' : '签到'}
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+        
+        html += '</tbody></table>';
+        listEl.innerHTML = html;
+      } catch (error) {
+        listEl.innerHTML = '<div class="empty-state">加载失败</div>';
+      }
+    }
+
+    function toggleMember(userId) {
+      if (selectedMembers.has(userId)) {
+        selectedMembers.delete(userId);
+      } else {
+        selectedMembers.add(userId);
+      }
+      updateSelectedCount();
+    }
+
+    function selectAll() {
+      document.querySelectorAll('.member-checkbox:not(:disabled)').forEach(cb => {
+        cb.checked = true;
+        selectedMembers.add(cb.value);
+      });
+      updateSelectedCount();
+    }
+
+    function selectNone() {
+      document.querySelectorAll('.member-checkbox').forEach(cb => {
+        cb.checked = false;
+      });
+      selectedMembers.clear();
+      updateSelectedCount();
+    }
+
+    function toggleSelectAll() {
+      const allBox = document.getElementById('selectAllBox');
+      if (allBox.checked) {
+        selectAll();
+      } else {
+        selectNone();
+      }
+    }
+
+    function updateSelectedCount() {
+      document.getElementById('selectedCount').textContent = `已选 ${selectedMembers.size} 人`;
+    }
+
+    async function singleCheckin(bookingId) {
+      try {
+        const data = await apiCall('/checkins', {
+          method: 'POST',
+          body: JSON.stringify({ bookingId, method: 'manual' })
+        });
+
+        if (data.success) {
+          alert('签到成功');
+          loadCourseBookings();
+        } else {
+          alert(data.message);
+        }
+      } catch (error) {
+        alert('签到失败');
+      }
+    }
+
+    async function batchCheckin() {
+      const courseId = document.getElementById('courseSelect').value;
+      
+      if (selectedMembers.size === 0) {
+        alert('请选择要签到的会员');
+        return;
+      }
+
+      try {
+        const data = await apiCall('/checkins/batch', {
+          method: 'POST',
+          body: JSON.stringify({
+            courseId,
+            userIds: Array.from(selectedMembers),
+            method: 'manual'
+          })
+        });
+
+        if (data.success) {
+          alert(data.message);
+          loadCourseBookings();
+        } else {
+          alert(data.message);
+        }
+      } catch (error) {
+        alert('批量签到失败');
+      }
+    }
+
+    async function loadCourseList() {
+      const startDate = document.getElementById('statsStartDate').value;
+      const endDate = document.getElementById('statsEndDate').value;
+      
+      try {
+        const data = await apiCall(`/stats/weekly?startDate=${startDate}&endDate=${endDate}`);
+        
+        const courses = data.data.courses;
+        const summary = data.data.summary;
+        
+        let html = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="label">课程总数</div>
+              <div class="value">${summary.total_courses}</div>
+            </div>
+            <div class="stat-card success">
+              <div class="label">预约人次</div>
+              <div class="value">${summary.total_booked}</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="label">实到人次</div>
+              <div class="value">${summary.total_checked}</div>
+            </div>
+            <div class="stat-card error">
+              <div class="label">爽约人次</div>
+              <div class="value">${summary.total_missed}</div>
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>日期</th>
+              <th>时间</th>
+              <th>课程</th>
+              <th>教练</th>
+              <th>教室</th>
+              <th>预约</th>
+              <th>实到</th>
+              <th>爽约</th>
+              <th>出席率</th>
+            </tr></thead><tbody>
+        `;
+
+        courses.forEach(c => {
+          html += `
+            <tr>
+              <td>${c.date}</td>
+              <td>${c.start_time}-${c.end_time}</td>
+              <td>${c.name}</td>
+              <td>${c.coach_name}</td>
+              <td>${c.room}</td>
+              <td>${c.booked_count}</td>
+              <td>${c.checked_count}</td>
+              <td>${c.missed_count}</td>
+              <td>${c.attendance_rate}%</td>
+            </tr>
+          `;
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('coursesTable').innerHTML = html;
+      } catch (error) {
+        document.getElementById('coursesTable').innerHTML = '<div class="empty-state">加载失败</div>';
+      }
+    }
+
+    async function loadWeeklyStats() {
+      const startDate = document.getElementById('statsStartDate')?.value || '';
+      const endDate = document.getElementById('statsEndDate')?.value || '';
+      
+      try {
+        const data = await apiCall(`/stats/weekly?startDate=${startDate}&endDate=${endDate}`);
+        const summary = data.data.summary;
+
+        document.getElementById('weeklyStats').innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="label">课程总数</div>
+              <div class="value">${summary.total_courses}</div>
+            </div>
+            <div class="stat-card success">
+              <div class="label">预约人次</div>
+              <div class="value">${summary.total_booked}</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="label">实到人次</div>
+              <div class="value">${summary.total_checked}</div>
+            </div>
+            <div class="stat-card error">
+              <div class="label">爽约人次</div>
+              <div class="value">${summary.total_missed}</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">平均出席率</div>
+              <div class="value">${summary.avg_attendance_rate}%</div>
+            </div>
+            <div class="stat-card success">
+              <div class="label">教练课时费合计</div>
+              <div class="value">¥${summary.total_coach_fee}</div>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        document.getElementById('weeklyStats').innerHTML = '<div class="empty-state">加载失败</div>';
+      }
+    }
+
+    async function loadCoachStats() {
+      const startDate = document.getElementById('statsStartDate')?.value || '';
+      const endDate = document.getElementById('statsEndDate')?.value || '';
+
+      try {
+        const data = await apiCall(`/stats/coaches?startDate=${startDate}&endDate=${endDate}`);
+
+        let html = '<table><thead><tr><th>教练</th><th>课程数</th><th>总时长</th><th>签到人次</th><th>课时费</th></tr></thead><tbody>';
+        
+        data.data.forEach(coach => {
+          html += `
+            <tr>
+              <td>${coach.name}</td>
+              <td>${coach.course_count}</td>
+              <td>${coach.total_duration || 0} 分钟</td>
+              <td>${coach.total_checked}</td>
+              <td style="color:#FF6B35;font-weight:600;">¥${coach.total_fee}</td>
+            </tr>
+          `;
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('coachStats').innerHTML = html;
+      } catch (error) {
+        document.getElementById('coachStats').innerHTML = '<div class="empty-state">加载失败</div>';
+      }
+    }
+
+    async function loadMembers() {
+      try {
+        const data = await apiCall('/members?pageSize=50');
+        renderMemberList(data.data.list);
+      } catch (error) {
+        document.getElementById('membersList').innerHTML = '<div class="empty-state">加载失败</div>';
+      }
+    }
+
+    async function searchMembers() {
+      const keyword = document.getElementById('memberSearch').value;
+      
+      try {
+        const data = await apiCall(`/members?keyword=${encodeURIComponent(keyword)}&pageSize=50`);
+        renderMemberList(data.data.list);
+      } catch (error) {
+        console.error('搜索失败', error);
+      }
+    }
+
+    function renderMemberList(members) {
+      if (members.length === 0) {
+        document.getElementById('membersList').innerHTML = '<div class="empty-state">暂无数据</div>';
+        return;
+      }
+
+      let html = '<table><thead><tr><th>姓名</th><th>手机号</th><th>注册时间</th></tr></thead><tbody>';
+      
+      members.forEach(m => {
+        html += `
+          <tr>
+            <td>${m.name}</td>
+            <td>${m.phone}</td>
+            <td>${m.created_at}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('membersList').innerHTML = html;
+    }
+
+    async function exportStats() {
+      const startDate = document.getElementById('statsStartDate').value;
+      const endDate = document.getElementById('statsEndDate').value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/stats/weekly/export?startDate=${startDate}&endDate=${endDate}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `课表出席统计_${startDate}_${endDate}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        } else {
+          alert('导出失败');
+        }
+      } catch (error) {
+        alert('导出失败');
+      }
+    }
+  </script>
+</body>
+</html>

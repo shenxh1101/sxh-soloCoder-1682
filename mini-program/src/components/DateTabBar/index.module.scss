@@ -1,0 +1,75 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  background: $color-bg-card;
+  padding: $spacing-md 0;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.scrollView {
+  width: 100%;
+}
+
+.tabList {
+  display: inline-flex;
+  padding: 0 $page-padding;
+  gap: $spacing-sm;
+  white-space: nowrap;
+}
+
+.tabItem {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100rpx;
+  height: 120rpx;
+  border-radius: $radius-lg;
+  background: $color-bg-page;
+  position: relative;
+  transition: all $transition-base;
+  flex-shrink: 0;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.96);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    
+    .dayOfWeek, .dayNum {
+      color: $color-text-white;
+    }
+  }
+
+  &.today:not(.active) {
+    border: 2rpx solid $color-primary;
+  }
+}
+
+.dayOfWeek {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.dayNum {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.todayDot {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+}
+
+.active .todayDot {
+  background: $color-text-white;
+}
