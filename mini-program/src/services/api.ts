@@ -121,6 +121,18 @@ export const bookingAPI = {
       url: `/bookings/${bookingId}/cancel`,
       method: 'POST'
     });
+  },
+
+  getCheckinCode: (bookingId: string) => {
+    return request<any>({
+      url: `/bookings/${bookingId}/checkin-code`
+    });
+  },
+
+  getBookingDetail: (bookingId: string) => {
+    return request<any>({
+      url: `/bookings/${bookingId}`
+    });
   }
 };
 

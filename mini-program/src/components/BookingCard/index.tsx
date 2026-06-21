@@ -9,6 +9,7 @@ interface BookingCardProps {
   booking: Booking;
   onCancel?: () => void;
   onDetail?: () => void;
+  onShowCheckinCode?: () => void;
   showCancel?: boolean;
 }
 
@@ -16,22 +17,30 @@ const BookingCard: React.FC<BookingCardProps> = ({
   booking,
   onCancel,
   onDetail,
+  onShowCheckinCode,
   showCancel = true
 }) => {
   const statusColor = getBookingStatusColor(booking.status);
-  const canCancel = showCancel && canCancelBooking(booking.date, booking.startTime) 
+  const canCancel = showCancel && canCancelBooking(booking.courseDate, booking.startTime) 
     && (booking.status === 'booked' || booking.status === 'waitlist');
+
+  const canShowCheckinCode = booking.status === 'booked' || booking.status === 'checked_in';
 
   const handleCancel = (e: React.MouseEvent) => {
     e.stopPropagation();
     onCancel?.();
   };
 
+  const handleShowCheckinCode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowCheckinCode?.();
+  };
+
   return (
     <View className={styles.card} onClick={onDetail}>
       <View className={styles.cardHeader}>
         <View className={styles.dateTime}>
-          <Text className={styles.date}>{booking.date}</Text>
+          <Text className={styles.date}>{booking.courseDate}</Text>
           <Text className={styles.time}>
             {booking.startTime} - {booking.endTime}
           </Text>
@@ -49,16 +58,23 @@ const BookingCard: React.FC<BookingCardProps> = ({
       <View className={styles.cardBody}>
         <Text className={styles.courseName}>{booking.courseName}</Text>
         <View className={styles.infoRow}>
-          <Text className={styles.coach}>教练：{booking.coach}</Text>
+          <Text className={styles.coach}>教练：{booking.coachName}</Text>
           <Text className={styles.room}>{booking.room}</Text>
         </View>
       </View>
 
-      {canCancel && (
+      {(canCancel || canShowCheckinCode) && (
         <View className={styles.cardFooter}>
-          <Button className={styles.cancelButton} onClick={handleCancel}>
-            取消预约
-          </Button>
+          {canCancel && (
+            <Button className={styles.cancelButton} onClick={handleCancel}>
+              取消预约
+            </Button>
+          )}
+          {canShowCheckinCode && (
+            <Button className={styles.checkinCodeButton} onClick={handleShowCheckinCode}>
+              {booking.status === 'checked_in' ? '查看签到码' : '签到码'}
+            </Button>
+          )}
         </View>
       )}
     </View>

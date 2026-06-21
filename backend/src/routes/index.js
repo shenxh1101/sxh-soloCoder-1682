@@ -13,12 +13,14 @@ const {
   getBookings, 
   createBooking, 
   cancelBooking,
-  getCourseBookings
+  getCourseBookings,
+  getBookingCheckinCode
 } = require('../controllers/bookingController');
 const { 
   checkin, 
   scanCheckin,
   scanCheckinConfirm,
+  scanBookingCheckin,
   getCheckinsByCourse,
   getTodayCheckins,
   batchCheckin,
@@ -49,6 +51,7 @@ router.get('/coaches', getCoaches);
 router.get('/bookings', authMiddleware, getBookings);
 router.post('/bookings', authMiddleware, createBooking);
 router.post('/bookings/:id/cancel', authMiddleware, cancelBooking);
+router.get('/bookings/:id/checkin-code', authMiddleware, getBookingCheckinCode);
 
 router.get('/courses/:courseId/bookings', authMiddleware, adminMiddleware, getCourseBookings);
 router.post('/courses', authMiddleware, adminMiddleware, createCourse);
@@ -58,6 +61,7 @@ router.delete('/courses/:id', authMiddleware, adminMiddleware, deleteCourse);
 router.post('/checkins', authMiddleware, adminMiddleware, checkin);
 router.post('/checkins/scan', authMiddleware, adminMiddleware, scanCheckin);
 router.post('/checkins/scan-confirm', authMiddleware, adminMiddleware, scanCheckinConfirm);
+router.post('/checkins/scan-booking', authMiddleware, adminMiddleware, scanBookingCheckin);
 router.get('/checkins/today', authMiddleware, adminMiddleware, getTodayCheckins);
 router.get('/courses/:courseId/checkins', authMiddleware, adminMiddleware, getCheckinsByCourse);
 router.post('/checkins/batch', authMiddleware, adminMiddleware, batchCheckin);

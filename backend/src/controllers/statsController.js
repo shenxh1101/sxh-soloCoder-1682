@@ -15,6 +15,8 @@ const getWeeklyStats = (req, res) => {
     end = dayjs().endOf('week');
   }
 
+  const now = dayjs();
+
   const courses = db.prepare(`
     SELECT c.*, co.name as coach_name, co.hourly_rate, co.avatar as coach_avatar
     FROM courses c
@@ -24,6 +26,9 @@ const getWeeklyStats = (req, res) => {
   `).all(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
 
   const stats = courses.map(course => {
+    const courseEndTime = dayjs(`${course.date} ${course.end_time}`);
+    const isCourseEnded = courseEndTime.isBefore(now);
+    
     const bookedCount = db.prepare(
       "SELECT COUNT(*) as count FROM bookings WHERE course_id = ? AND status IN ('booked', 'checked_in', 'missed')"
     ).get(course.id).count;
@@ -34,7 +39,11 @@ const getWeeklyStats = (req, res) => {
 
     const waitlistCount = course.waitlist_count;
     
-    const missedCount = bookedCount - checkedCount > 0 ? bookedCount - checkedCount : 0;
+    let missedCount = 0;
+    if (isCourseEnded) {
+      missedCount = bookedCount - checkedCount > 0 ? bookedCount - checkedCount : 0;
+    }
+    
     const attendanceRate = bookedCount > 0 ? ((checkedCount / bookedCount) * 100).toFixed(1) : '0.0';
     const coachFee = course.hourly_rate * (course.duration / 60);
 
@@ -45,7 +54,8 @@ const getWeeklyStats = (req, res) => {
       missed_count: missedCount,
       waitlist_count: waitlistCount,
       attendance_rate: attendanceRate,
-      coach_fee: coachFee.toFixed(2)
+      coach_fee: coachFee.toFixed(2),
+      is_ended: isCourseEnded
     };
   });
 
@@ -85,6 +95,8 @@ const getCoachStats = (req, res) => {
     end = dayjs().endOf('week');
   }
 
+  const now = dayjs();
+
   const coaches = db.prepare(`
     SELECT co.id, co.name, co.avatar, co.hourly_rate,
       COUNT(c.id) as course_count,
@@ -113,6 +125,15 @@ const getCoachStats = (req, res) => {
         AND b.status IN ('booked', 'checked_in', 'missed')
     `).get(coach.id, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')).count;
 
+    const endedBookedCount = db.prepare(`
+      SELECT COUNT(*) as count FROM bookings b
+      JOIN courses c ON b.course_id = c.id
+      WHERE c.coach_id = ? AND c.date BETWEEN ? AND ?
+        AND b.status IN ('booked', 'checked_in', 'missed')
+        AND datetime(c.date || ' ' || c.end_time) < datetime('now', 'localtime')
+    `).get(coach.id, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')).count;
+
+    const missedCount = endedBookedCount - checkedCount > 0 ? endedBookedCount - checkedCount : 0;
     const avgAttendance = bookedCount > 0 
       ? ((checkedCount / bookedCount) * 100).toFixed(1)
       : '0.0';
@@ -121,6 +142,7 @@ const getCoachStats = (req, res) => {
       ...coach,
       total_checked: checkedCount,
       total_booked: bookedCount,
+      total_missed: missedCount,
       total_fee: totalFee,
       avg_attendance: avgAttendance
     };
@@ -144,6 +166,8 @@ const exportWeeklyStats = async (req, res) => {
     start = dayjs().startOf('week');
     end = dayjs().endOf('week');
   }
+
+  const now = dayjs();
 
   const courses = db.prepare(`
     SELECT c.*, co.name as coach_name, co.hourly_rate
@@ -186,6 +210,9 @@ const exportWeeklyStats = async (req, res) => {
   let totalFee = 0;
 
   for (const course of courses) {
+    const courseEndTime = dayjs(`${course.date} ${course.end_time}`);
+    const isCourseEnded = courseEndTime.isBefore(now);
+    
     const bookedCount = db.prepare(
       "SELECT COUNT(*) as count FROM bookings WHERE course_id = ? AND status IN ('booked', 'checked_in', 'missed')"
     ).get(course.id).count;
@@ -194,7 +221,11 @@ const exportWeeklyStats = async (req, res) => {
       "SELECT COUNT(*) as count FROM checkins WHERE course_id = ?"
     ).get(course.id).count;
 
-    const missedCount = bookedCount - checkedCount > 0 ? bookedCount - checkedCount : 0;
+    let missedCount = 0;
+    if (isCourseEnded) {
+      missedCount = bookedCount - checkedCount > 0 ? bookedCount - checkedCount : 0;
+    }
+    
     const attendanceRate = bookedCount > 0 ? `${((checkedCount / bookedCount) * 100).toFixed(1)}%` : '0%';
     const coachFee = course.hourly_rate * (course.duration / 60);
 
@@ -262,7 +293,15 @@ const getMemberStats = (req, res) => {
     "SELECT COUNT(*) as count FROM checkins WHERE user_id = ?"
   ).get(userId).count;
 
-  const missed = totalBooked - checkedIn > 0 ? totalBooked - checkedIn : 0;
+  const endedBookedCount = db.prepare(`
+    SELECT COUNT(*) as count FROM bookings b
+    JOIN courses c ON b.course_id = c.id
+    WHERE b.user_id = ? 
+      AND b.status IN ('booked', 'checked_in', 'missed')
+      AND datetime(c.date || ' ' || c.end_time) < datetime('now', 'localtime')
+  `).get(userId).count;
+
+  const missed = endedBookedCount - checkedIn > 0 ? endedBookedCount - checkedIn : 0;
 
   const cancelled = db.prepare(
     "SELECT COUNT(*) as count FROM bookings WHERE user_id = ? AND status = 'cancelled'"

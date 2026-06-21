@@ -353,10 +353,128 @@ const generateCheckinCode = (req, res) => {
   });
 };
 
+const scanBookingCheckin = (req, res) => {
+  const { code } = req.body;
+  const operatorId = req.user?.id;
+
+  if (!code) {
+    return res.status(400).json({ success: false, message: '签到码无效' });
+  }
+
+  const booking = db.prepare(`
+    SELECT b.*, c.name as course_name, c.date, c.start_time, c.end_time, c.room,
+      u.name as user_name, u.phone, u.avatar
+    FROM bookings b
+    LEFT JOIN courses c ON b.course_id = c.id
+    LEFT JOIN users u ON b.user_id = u.id
+    WHERE b.checkin_code = ?
+  `).get(code);
+  
+  if (!booking) {
+    return res.status(404).json({ success: false, message: '预约码无效或不存在' });
+  }
+
+  if (booking.status === 'cancelled') {
+    return res.status(400).json({ success: false, message: '该预约已取消' });
+  }
+
+  const existingCheckin = db.prepare('SELECT id, checkin_time FROM checkins WHERE booking_id = ?').get(booking.id);
+  
+  if (existingCheckin) {
+    return res.json({ 
+      success: true, 
+      message: '已签到', 
+      alreadyCheckedIn: true,
+      data: {
+        booking_id: booking.id,
+        user_name: booking.user_name,
+        user_phone: booking.phone,
+        user_avatar: booking.avatar,
+        course_name: booking.course_name,
+        course_date: booking.date,
+        course_time: `${booking.start_time}-${booking.end_time}`,
+        room: booking.room,
+        checkin_time: existingCheckin.checkin_time
+      }
+    });
+  }
+
+  if (booking.status !== 'booked' && booking.status !== 'waitlist') {
+    return res.status(400).json({ success: false, message: '该预约状态无法签到' });
+  }
+
+  const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(booking.course_id);
+  const courseDate = dayjs(`${course.date} ${course.start_time}`);
+  const now = dayjs();
+  
+  if (now.isBefore(courseDate.subtract(30, 'minute'))) {
+    return res.status(400).json({ success: false, message: '开课前30分钟才可签到' });
+  }
+  
+  if (now.isAfter(courseDate.add(1, 'hour'))) {
+    return res.status(400).json({ success: false, message: '课程已结束，无法签到' });
+  }
+
+  const checkinId = uuidv4();
+
+  const transaction = db.transaction(() => {
+    const deductResult = deductClass(booking.user_id, booking.id, checkinId, 'scan');
+    
+    if (!deductResult.success) {
+      return deductResult;
+    }
+
+    db.prepare(`
+      INSERT INTO checkins (id, booking_id, user_id, course_id, card_id, checkin_method, operator_id)
+      VALUES (?, ?, ?, ?, ?, 'scan', ?)
+    `).run(checkinId, booking.id, booking.user_id, booking.course_id, deductResult.cardId, operatorId);
+
+    db.prepare("UPDATE bookings SET status = 'checked_in' WHERE id = ?").run(booking.id);
+
+    if (booking.status === 'waitlist') {
+      db.prepare('UPDATE courses SET waitlist_count = waitlist_count - 1 WHERE id = ?').run(course.id);
+    }
+
+    return { success: true, cardId: deductResult.cardId };
+  });
+
+  const result = transaction();
+
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result.message });
+  }
+
+  const checkinRecord = db.prepare(`
+    SELECT ch.*, u.name as user_name, u.phone, u.avatar, c.name as course_name, c.date, c.start_time, c.end_time, c.room
+    FROM checkins ch
+    LEFT JOIN users u ON ch.user_id = u.id
+    LEFT JOIN courses c ON ch.course_id = c.id
+    WHERE ch.id = ?
+  `).get(checkinId);
+
+  res.json({
+    success: true,
+    message: '签到成功，已扣除1次团课',
+    data: {
+      booking_id: booking.id,
+      user_name: checkinRecord.user_name,
+      user_phone: checkinRecord.phone,
+      user_avatar: checkinRecord.avatar,
+      course_name: checkinRecord.course_name,
+      course_date: checkinRecord.date,
+      course_time: `${checkinRecord.start_time}-${checkinRecord.end_time}`,
+      room: checkinRecord.room,
+      checkin_time: checkinRecord.checkin_time,
+      card_id: result.cardId
+    }
+  });
+};
+
 module.exports = {
   checkin,
   scanCheckin,
   scanCheckinConfirm,
+  scanBookingCheckin,
   getCheckinsByCourse,
   getTodayCheckins,
   batchCheckin,

@@ -6,7 +6,9 @@ export default defineAppConfig({
     'pages/course-detail/index',
     'pages/login/index',
     'pages/booking-history/index',
-    'pages/my-cards/index'
+    'pages/my-cards/index',
+    'pages/checkin-code/index',
+    'pages/booking-detail/index'
   ],
   window: {
     backgroundTextStyle: 'light',

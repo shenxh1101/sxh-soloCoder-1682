@@ -99,6 +99,7 @@ const createBooking = (req, res) => {
   const bookingId = uuidv4();
   let status = 'booked';
   let waitlistPosition = null;
+  const checkinCode = `BK${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
   const transaction = db.transaction(() => {
     if (isFull) {
@@ -106,16 +107,16 @@ const createBooking = (req, res) => {
       waitlistPosition = course.waitlist_count + 1;
       
       db.prepare(`
-        INSERT INTO bookings (id, user_id, course_id, status, waitlist_position)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(bookingId, userId, courseId, status, waitlistPosition);
+        INSERT INTO bookings (id, user_id, course_id, status, waitlist_position, checkin_code)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(bookingId, userId, courseId, status, waitlistPosition, checkinCode);
 
       db.prepare('UPDATE courses SET waitlist_count = waitlist_count + 1 WHERE id = ?').run(courseId);
     } else {
       db.prepare(`
-        INSERT INTO bookings (id, user_id, course_id, status)
-        VALUES (?, ?, ?, ?)
-      `).run(bookingId, userId, courseId, status);
+        INSERT INTO bookings (id, user_id, course_id, status, checkin_code)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(bookingId, userId, courseId, status, checkinCode);
 
       db.prepare('UPDATE courses SET booked_count = booked_count + 1 WHERE id = ?').run(courseId);
     }
@@ -258,9 +259,61 @@ const getCourseBookings = (req, res) => {
   });
 };
 
+const getBookingCheckinCode = (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  const booking = db.prepare(`
+    SELECT b.*, c.name as course_name, c.date, c.start_time, c.end_time, c.room,
+      co.name as coach_name,
+      CASE 
+        WHEN EXISTS (SELECT 1 FROM checkins ch WHERE ch.booking_id = b.id) THEN 1 
+        ELSE 0 
+      END as has_checked_in
+    FROM bookings b
+    LEFT JOIN courses c ON b.course_id = c.id
+    LEFT JOIN coaches co ON c.coach_id = co.id
+    WHERE b.id = ? AND b.user_id = ?
+  `).get(id, userId);
+
+  if (!booking) {
+    return res.status(404).json({ success: false, message: '预约记录不存在' });
+  }
+
+  if (booking.status === 'cancelled') {
+    return res.status(400).json({ success: false, message: '该预约已取消' });
+  }
+
+  const courseDateTime = dayjs(`${booking.date} ${booking.start_time}`);
+  const now = dayjs();
+  
+  if (now.isBefore(courseDateTime.subtract(30, 'minute'))) {
+    return res.status(400).json({ success: false, message: '开课前30分钟才能打开签到码' });
+  }
+
+  if (now.isAfter(courseDateTime.add(1, 'hour'))) {
+    return res.status(400).json({ success: false, message: '课程已结束，无法签到' });
+  }
+
+  res.json({
+    success: true,
+    data: {
+      booking_id: booking.id,
+      checkin_code: booking.checkin_code,
+      course_name: booking.course_name,
+      course_date: booking.date,
+      course_time: `${booking.start_time}-${booking.end_time}`,
+      room: booking.room,
+      coach_name: booking.coach_name,
+      has_checked_in: booking.has_checked_in === 1
+    }
+  });
+};
+
 module.exports = {
   getBookings,
   createBooking,
   cancelBooking,
-  getCourseBookings
+  getCourseBookings,
+  getBookingCheckinCode
 };

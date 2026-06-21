@@ -94,6 +94,18 @@ const BookingsPage: React.FC = () => {
     });
   };
 
+  const handleShowCheckinCode = (bookingId: string) => {
+    Taro.navigateTo({
+      url: `/pages/checkin-code/index?id=${bookingId}`
+    });
+  };
+
+  const handleShowDetail = (bookingId: string) => {
+    Taro.navigateTo({
+      url: `/pages/booking-detail/index?id=${bookingId}`
+    });
+  };
+
   const goToSchedule = () => {
     Taro.switchTab({
       url: '/pages/schedule/index'
@@ -157,6 +169,8 @@ const BookingsPage: React.FC = () => {
                 key={booking.id}
                 booking={booking}
                 onCancel={() => handleCancel(booking.id)}
+                onShowCheckinCode={() => handleShowCheckinCode(booking.id)}
+                onDetail={() => handleShowDetail(booking.id)}
                 showCancel={activeTab === 'upcoming' && booking.status === 'booked'}
               />
             ))}

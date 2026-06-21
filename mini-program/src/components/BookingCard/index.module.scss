@@ -76,6 +76,7 @@
 .cardFooter {
   display: flex;
   justify-content: flex-end;
+  gap: $spacing-md;
   padding-top: $spacing-md;
   margin-top: $spacing-md;
   border-top: 2rpx solid $color-divider;
@@ -94,6 +95,22 @@
 
   &:active {
     background: $color-bg-hover;
+    opacity: 0.8;
+  }
+}
+
+.checkinCodeButton {
+  @include button-reset;
+  height: $button-height-sm;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-button;
+  background: $color-primary;
+  color: $color-white;
+  font-size: $font-size-sm;
+  transition: all $transition-base;
+
+  &:active {
+    background: $color-primary-dark;
     opacity: 0.8;
   }
 }
