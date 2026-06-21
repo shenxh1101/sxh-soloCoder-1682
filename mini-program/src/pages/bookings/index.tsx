@@ -1,22 +1,59 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, Button, ScrollView } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
-import { useStore } from '@/store/useStore';
 import BookingCard from '@/components/BookingCard';
-import { canCancelBooking } from '@/utils/date';
+import { bookingAPI } from '@/services/api';
+import { Booking } from '@/types';
 import styles from './index.module.scss';
 
 type TabType = 'upcoming' | 'past';
 
 const BookingsPage: React.FC = () => {
-  const { bookings, cancelBooking } = useStore();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadBookings = useCallback(async () => {
+    const token = Taro.getStorageSync('token');
+    if (!token) {
+      setBookings([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await bookingAPI.getBookings();
+      const list = data.list || data || [];
+      setBookings(list.map((b: any) => ({
+        id: b.id,
+        courseId: b.course_id,
+        courseName: b.course_name,
+        courseDate: b.course_date,
+        startTime: b.start_time,
+        endTime: b.end_time,
+        coachName: b.coach_name,
+        coachAvatar: b.coach_avatar,
+        room: b.room,
+        status: b.status,
+        waitlistPosition: b.waitlist_position,
+        bookedAt: b.booked_at
+      })));
+    } catch (error) {
+      console.error('Load bookings error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useDidShow(() => {
+    loadBookings();
+  });
 
   const upcomingBookings = useMemo(() => {
     return bookings.filter(b => b.status === 'booked' || b.status === 'waitlist')
       .sort((a, b) => {
-        const dateCompare = a.date.localeCompare(b.date);
+        const dateCompare = a.courseDate.localeCompare(b.courseDate);
         if (dateCompare !== 0) return dateCompare;
         return a.startTime.localeCompare(b.startTime);
       });
@@ -25,7 +62,7 @@ const BookingsPage: React.FC = () => {
   const pastBookings = useMemo(() => {
     return bookings.filter(b => b.status === 'checked_in' || b.status === 'missed' || b.status === 'cancelled')
       .sort((a, b) => {
-        const dateCompare = b.date.localeCompare(a.date);
+        const dateCompare = b.courseDate.localeCompare(a.courseDate);
         if (dateCompare !== 0) return dateCompare;
         return b.startTime.localeCompare(a.startTime);
       });
@@ -39,14 +76,19 @@ const BookingsPage: React.FC = () => {
       content: '确定要取消这个预约吗？',
       confirmText: '确认取消',
       confirmColor: '#F53F3F',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          const result = cancelBooking(bookingId);
-          Taro.showToast({
-            title: result.message,
-            icon: result.success ? 'success' : 'none',
-            duration: 2000
-          });
+          try {
+            await bookingAPI.cancelBooking(bookingId);
+            Taro.showToast({
+              title: '已取消预约',
+              icon: 'success',
+              duration: 2000
+            });
+            loadBookings();
+          } catch (error) {
+            console.error('Cancel booking error:', error);
+          }
         }
       }
     });
@@ -57,6 +99,12 @@ const BookingsPage: React.FC = () => {
       url: '/pages/schedule/index'
     });
   };
+
+  const goLogin = () => {
+    Taro.navigateTo({ url: '/pages/login/index' });
+  };
+
+  const isLoggedIn = Taro.getStorageSync('token');
 
   return (
     <View className={styles.page}>
@@ -80,7 +128,15 @@ const BookingsPage: React.FC = () => {
       </View>
 
       <ScrollView scrollY className={styles.content}>
-        {displayBookings.length === 0 ? (
+        {!isLoggedIn ? (
+          <View className={styles.emptyState}>
+            <View className={styles.emptyIcon}>🔐</View>
+            <Text className={styles.emptyText}>请先登录查看预约</Text>
+            <Button className={styles.goBookButton} onClick={goLogin}>
+              去登录
+            </Button>
+          </View>
+        ) : displayBookings.length === 0 ? (
           <View className={styles.emptyState}>
             <View className={styles.emptyIcon}>
               {activeTab === 'upcoming' ? '📆' : '📋'}
@@ -101,7 +157,7 @@ const BookingsPage: React.FC = () => {
                 key={booking.id}
                 booking={booking}
                 onCancel={() => handleCancel(booking.id)}
-                showCancel={activeTab === 'upcoming'}
+                showCancel={activeTab === 'upcoming' && booking.status === 'booked'}
               />
             ))}
           </View>

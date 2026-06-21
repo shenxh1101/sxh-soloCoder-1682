@@ -3,7 +3,10 @@ export default defineAppConfig({
     'pages/schedule/index',
     'pages/bookings/index',
     'pages/profile/index',
-    'pages/course-detail/index'
+    'pages/course-detail/index',
+    'pages/login/index',
+    'pages/booking-history/index',
+    'pages/my-cards/index'
   ],
   window: {
     backgroundTextStyle: 'light',

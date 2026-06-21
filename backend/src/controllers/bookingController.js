@@ -7,7 +7,12 @@ const getBookings = (req, res) => {
   const { status, courseId } = req.query;
 
   let query = `
-    SELECT b.*, c.name as course_name, c.start_time, c.end_time, c.date, c.room, co.name as coach_name
+    SELECT b.*, c.name as course_name, c.start_time, c.end_time, c.date, c.room, c.category, c.difficulty,
+      co.name as coach_name, co.avatar as coach_avatar,
+      CASE 
+        WHEN EXISTS (SELECT 1 FROM checkins ch WHERE ch.booking_id = b.id) THEN 1 
+        ELSE 0 
+      END as has_checked_in
     FROM bookings b
     LEFT JOIN courses c ON b.course_id = c.id
     LEFT JOIN coaches co ON c.coach_id = co.id
@@ -17,8 +22,12 @@ const getBookings = (req, res) => {
   const params = [userId];
 
   if (status) {
-    query += ' AND b.status = ?';
-    params.push(status);
+    if (status === 'checked_in') {
+      query += " AND EXISTS (SELECT 1 FROM checkins ch WHERE ch.booking_id = b.id)";
+    } else {
+      query += ' AND b.status = ?';
+      params.push(status);
+    }
   }
 
   if (courseId) {
@@ -30,9 +39,15 @@ const getBookings = (req, res) => {
 
   const bookings = db.prepare(query).all(...params);
 
+  const result = bookings.map(b => ({
+    ...b,
+    course_date: b.date,
+    status: b.has_checked_in ? 'checked_in' : b.status
+  }));
+
   res.json({
     success: true,
-    data: bookings
+    data: result
   });
 };
 
@@ -77,6 +92,10 @@ const createBooking = (req, res) => {
     return res.status(400).json({ success: false, message: '剩余团课次数不足，请先充值' });
   }
 
+  if (isFull && !card) {
+    return res.status(400).json({ success: false, message: '剩余团课次数不足，无法加入候补' });
+  }
+
   const bookingId = uuidv4();
   let status = 'booked';
   let waitlistPosition = null;
@@ -99,10 +118,6 @@ const createBooking = (req, res) => {
       `).run(bookingId, userId, courseId, status);
 
       db.prepare('UPDATE courses SET booked_count = booked_count + 1 WHERE id = ?').run(courseId);
-      
-      db.prepare(
-        'UPDATE membership_cards SET remaining_classes = remaining_classes - 1 WHERE id = ?'
-      ).run(card.id);
     }
   });
 
@@ -137,6 +152,14 @@ const cancelBooking = (req, res) => {
     return res.status(404).json({ success: false, message: '预约记录不存在' });
   }
 
+  const hasCheckedIn = db.prepare(
+    'SELECT id FROM checkins WHERE booking_id = ?'
+  ).get(id);
+
+  if (hasCheckedIn) {
+    return res.status(400).json({ success: false, message: '已签到的课程无法取消' });
+  }
+
   if (booking.status !== 'booked' && booking.status !== 'waitlist') {
     return res.status(400).json({ success: false, message: '该状态无法取消' });
   }
@@ -155,14 +178,6 @@ const cancelBooking = (req, res) => {
 
     if (booking.status === 'booked') {
       db.prepare('UPDATE courses SET booked_count = booked_count - 1 WHERE id = ?').run(booking.course_id);
-      
-      const card = db.prepare(
-        "SELECT id FROM membership_cards WHERE user_id = ? AND status = 'active' ORDER BY remaining_classes ASC LIMIT 1"
-      ).get(userId);
-      
-      if (card) {
-        db.prepare('UPDATE membership_cards SET remaining_classes = remaining_classes + 1 WHERE id = ?').run(card.id);
-      }
 
       const firstWaitlist = db.prepare(`
         SELECT id, user_id FROM bookings 
@@ -178,7 +193,6 @@ const cancelBooking = (req, res) => {
         if (userCard) {
           db.prepare("UPDATE bookings SET status = 'booked', waitlist_position = NULL WHERE id = ?").run(firstWaitlist.id);
           db.prepare('UPDATE courses SET booked_count = booked_count + 1, waitlist_count = waitlist_count - 1 WHERE id = ?').run(booking.course_id);
-          db.prepare('UPDATE membership_cards SET remaining_classes = remaining_classes - 1 WHERE id = ?').run(userCard.id);
           
           db.prepare(
             'UPDATE bookings SET waitlist_position = waitlist_position - 1 WHERE course_id = ? AND status = ? AND waitlist_position > ?'
@@ -207,7 +221,11 @@ const getCourseBookings = (req, res) => {
   const { status } = req.query;
 
   let query = `
-    SELECT b.*, u.name as user_name, u.phone, u.avatar
+    SELECT b.*, u.name as user_name, u.phone, u.avatar,
+      CASE 
+        WHEN EXISTS (SELECT 1 FROM checkins ch WHERE ch.booking_id = b.id) THEN 1 
+        ELSE 0 
+      END as has_checked_in
     FROM bookings b
     LEFT JOIN users u ON b.user_id = u.id
     WHERE b.course_id = ?
@@ -216,17 +234,27 @@ const getCourseBookings = (req, res) => {
   const params = [courseId];
 
   if (status) {
-    query += ' AND b.status = ?';
-    params.push(status);
+    if (status === 'checked_in') {
+      query += " AND EXISTS (SELECT 1 FROM checkins ch WHERE ch.booking_id = b.id)";
+    } else {
+      query += ' AND b.status = ?';
+      params.push(status);
+    }
   }
 
   query += ' ORDER BY b.booked_at ASC';
 
   const bookings = db.prepare(query).all(...params);
 
+  const result = bookings.map(b => ({
+    ...b,
+    course_date: b.date,
+    status: b.has_checked_in ? 'checked_in' : b.status
+  }));
+
   res.json({
     success: true,
-    data: bookings
+    data: result
   });
 };
 

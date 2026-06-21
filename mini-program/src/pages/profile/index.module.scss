@@ -176,3 +176,29 @@
   font-size: $font-size-lg;
   color: $color-text-tertiary;
 }
+
+.loginTip {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: underline;
+}
+
+.logoutSection {
+  padding: $spacing-xl $page-padding;
+}
+
+.logoutBtn {
+  background: $color-bg-card;
+  color: #F53F3F;
+  text-align: center;
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  box-shadow: $shadow-card;
+  transition: all $transition-fast;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}

@@ -16,7 +16,7 @@ const getWeeklyStats = (req, res) => {
   }
 
   const courses = db.prepare(`
-    SELECT c.*, co.name as coach_name, co.hourly_rate
+    SELECT c.*, co.name as coach_name, co.hourly_rate, co.avatar as coach_avatar
     FROM courses c
     LEFT JOIN coaches co ON c.coach_id = co.id
     WHERE c.date BETWEEN ? AND ?
@@ -24,18 +24,18 @@ const getWeeklyStats = (req, res) => {
   `).all(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
 
   const stats = courses.map(course => {
-    const checkedCount = db.prepare(
-      "SELECT COUNT(*) as count FROM checkins WHERE course_id = ?"
-    ).get(course.id).count;
-
     const bookedCount = db.prepare(
       "SELECT COUNT(*) as count FROM bookings WHERE course_id = ? AND status IN ('booked', 'checked_in', 'missed')"
+    ).get(course.id).count;
+
+    const checkedCount = db.prepare(
+      "SELECT COUNT(*) as count FROM checkins WHERE course_id = ?"
     ).get(course.id).count;
 
     const waitlistCount = course.waitlist_count;
     
     const missedCount = bookedCount - checkedCount > 0 ? bookedCount - checkedCount : 0;
-    const attendanceRate = bookedCount > 0 ? ((checkedCount / bookedCount) * 100).toFixed(1) : 0;
+    const attendanceRate = bookedCount > 0 ? ((checkedCount / bookedCount) * 100).toFixed(1) : '0.0';
     const coachFee = course.hourly_rate * (course.duration / 60);
 
     return {
@@ -58,7 +58,7 @@ const getWeeklyStats = (req, res) => {
     total_coach_fee: stats.reduce((sum, s) => sum + parseFloat(s.coach_fee), 0).toFixed(2),
     avg_attendance_rate: stats.length > 0 
       ? (stats.reduce((sum, s) => sum + parseFloat(s.attendance_rate), 0) / stats.length).toFixed(1)
-      : 0
+      : '0.0'
   };
 
   res.json({
@@ -86,7 +86,7 @@ const getCoachStats = (req, res) => {
   }
 
   const coaches = db.prepare(`
-    SELECT co.id, co.name, co.hourly_rate,
+    SELECT co.id, co.name, co.avatar, co.hourly_rate,
       COUNT(c.id) as course_count,
       SUM(c.duration) as total_duration
     FROM coaches co
@@ -106,13 +106,23 @@ const getCoachStats = (req, res) => {
       ? (coach.hourly_rate * coach.total_duration / 60).toFixed(2) 
       : '0.00';
 
+    const bookedCount = db.prepare(`
+      SELECT COUNT(*) as count FROM bookings b
+      JOIN courses c ON b.course_id = c.id
+      WHERE c.coach_id = ? AND c.date BETWEEN ? AND ?
+        AND b.status IN ('booked', 'checked_in', 'missed')
+    `).get(coach.id, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')).count;
+
+    const avgAttendance = bookedCount > 0 
+      ? ((checkedCount / bookedCount) * 100).toFixed(1)
+      : '0.0';
+
     return {
       ...coach,
       total_checked: checkedCount,
+      total_booked: bookedCount,
       total_fee: totalFee,
-      avg_attendance: coach.course_count > 0 
-        ? (checkedCount / coach.course_count).toFixed(1)
-        : 0
+      avg_attendance: avgAttendance
     };
   });
 
@@ -176,12 +186,12 @@ const exportWeeklyStats = async (req, res) => {
   let totalFee = 0;
 
   for (const course of courses) {
-    const checkedCount = db.prepare(
-      "SELECT COUNT(*) as count FROM checkins WHERE course_id = ?"
-    ).get(course.id).count;
-
     const bookedCount = db.prepare(
       "SELECT COUNT(*) as count FROM bookings WHERE course_id = ? AND status IN ('booked', 'checked_in', 'missed')"
+    ).get(course.id).count;
+
+    const checkedCount = db.prepare(
+      "SELECT COUNT(*) as count FROM checkins WHERE course_id = ?"
     ).get(course.id).count;
 
     const missedCount = bookedCount - checkedCount > 0 ? bookedCount - checkedCount : 0;
@@ -245,38 +255,41 @@ const getMemberStats = (req, res) => {
   const userId = req.user.id;
 
   const totalBooked = db.prepare(
-    "SELECT COUNT(*) as count FROM bookings WHERE user_id = ?"
+    "SELECT COUNT(*) as count FROM bookings WHERE user_id = ? AND status IN ('booked', 'checked_in', 'missed')"
   ).get(userId).count;
 
   const checkedIn = db.prepare(
-    "SELECT COUNT(*) as count FROM bookings WHERE user_id = ? AND status = 'checked_in'"
+    "SELECT COUNT(*) as count FROM checkins WHERE user_id = ?"
   ).get(userId).count;
 
-  const missed = db.prepare(
-    "SELECT COUNT(*) as count FROM bookings WHERE user_id = ? AND status = 'missed'"
-  ).get(userId).count;
+  const missed = totalBooked - checkedIn > 0 ? totalBooked - checkedIn : 0;
 
   const cancelled = db.prepare(
     "SELECT COUNT(*) as count FROM bookings WHERE user_id = ? AND status = 'cancelled'"
   ).get(userId).count;
 
-  const attendanceRate = totalBooked > 0 
-    ? ((checkedIn / (totalBooked - cancelled)) * 100).toFixed(1) 
-    : 0;
+  const waitlist = db.prepare(
+    "SELECT COUNT(*) as count FROM bookings WHERE user_id = ? AND status = 'waitlist'"
+  ).get(userId).count;
 
-  const card = db.prepare(
-    "SELECT * FROM membership_cards WHERE user_id = ? AND status = 'active' ORDER BY remaining_classes DESC LIMIT 1"
-  ).get(userId);
+  const attendanceRate = totalBooked > 0 
+    ? ((checkedIn / totalBooked) * 100).toFixed(1) 
+    : '0.0';
+
+  const cards = db.prepare(
+    "SELECT * FROM membership_cards WHERE user_id = ? AND status = 'active' ORDER BY remaining_classes DESC"
+  ).all(userId);
 
   res.json({
     success: true,
     data: {
       total_booked: totalBooked,
       checked_in: checkedIn,
-      missed: missed,
-      cancelled: cancelled,
+      missed,
+      cancelled,
+      waitlist,
       attendance_rate: attendanceRate,
-      membership_card: card
+      membership_cards: cards
     }
   });
 };

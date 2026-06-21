@@ -17,9 +17,12 @@ const {
 } = require('../controllers/bookingController');
 const { 
   checkin, 
+  scanCheckin,
+  scanCheckinConfirm,
   getCheckinsByCourse,
   getTodayCheckins,
-  batchCheckin
+  batchCheckin,
+  generateCheckinCode
 } = require('../controllers/checkinController');
 const { 
   getWeeklyStats, 
@@ -31,6 +34,7 @@ const {
   getProfile, 
   updateProfile,
   getMembershipCards,
+  getCardTransactions,
   getMembers,
   getMemberDetail
 } = require('../controllers/userController');
@@ -52,9 +56,12 @@ router.put('/courses/:id', authMiddleware, adminMiddleware, updateCourse);
 router.delete('/courses/:id', authMiddleware, adminMiddleware, deleteCourse);
 
 router.post('/checkins', authMiddleware, adminMiddleware, checkin);
+router.post('/checkins/scan', authMiddleware, adminMiddleware, scanCheckin);
+router.post('/checkins/scan-confirm', authMiddleware, adminMiddleware, scanCheckinConfirm);
 router.get('/checkins/today', authMiddleware, adminMiddleware, getTodayCheckins);
 router.get('/courses/:courseId/checkins', authMiddleware, adminMiddleware, getCheckinsByCourse);
 router.post('/checkins/batch', authMiddleware, adminMiddleware, batchCheckin);
+router.get('/courses/:courseId/checkin-code', authMiddleware, adminMiddleware, generateCheckinCode);
 
 router.get('/stats/weekly', authMiddleware, adminMiddleware, getWeeklyStats);
 router.get('/stats/coaches', authMiddleware, adminMiddleware, getCoachStats);
@@ -64,6 +71,7 @@ router.get('/stats/member', authMiddleware, getMemberStats);
 router.get('/user/profile', authMiddleware, getProfile);
 router.put('/user/profile', authMiddleware, updateProfile);
 router.get('/user/cards', authMiddleware, getMembershipCards);
+router.get('/user/card-transactions', authMiddleware, getCardTransactions);
 
 router.get('/members', authMiddleware, adminMiddleware, getMembers);
 router.get('/members/:id', authMiddleware, adminMiddleware, getMemberDetail);

@@ -1,34 +1,89 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import { useStore } from '@/store/useStore';
+import Taro, { useDidShow } from '@tarojs/taro';
 import DateTabBar from '@/components/DateTabBar';
 import CourseCard from '@/components/CourseCard';
 import { generateWeekDates, isCourseFull } from '@/utils/date';
-import { DateTab } from '@/types';
+import { courseAPI, bookingAPI } from '@/services/api';
+import { DateTab, Course, Booking } from '@/types';
 import styles from './index.module.scss';
 
 const SchedulePage: React.FC = () => {
-  const { 
-    courses, 
-    selectedDate, 
-    setSelectedDate,
-    bookCourse,
-    joinWaitlist,
-    getBookedCourseIds,
-    getWaitlistCourseIds
-  } = useStore();
-  
   const [weekDates, setWeekDates] = useState<DateTab[]>([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const initDates = useCallback(() => {
     const dates = generateWeekDates();
     setWeekDates(dates);
-    if (dates.length > 0 && !selectedDate) {
+    if (dates.length > 0) {
       const today = dates.find(d => d.isToday) || dates[0];
       setSelectedDate(today.date);
     }
   }, []);
+
+  const checkLogin = useCallback(() => {
+    const token = Taro.getStorageSync('token');
+    if (!token) {
+      return false;
+    }
+    return true;
+  }, []);
+
+  const loadCourses = useCallback(async () => {
+    if (!selectedDate) return;
+    
+    setLoading(true);
+    try {
+      const data = await courseAPI.getCourses(selectedDate);
+      setCourses(data.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        coachId: c.coach_id,
+        coachName: c.coach_name,
+        coachAvatar: c.coach_avatar,
+        date: c.date,
+        startTime: c.start_time,
+        endTime: c.end_time,
+        duration: c.duration,
+        capacity: c.capacity,
+        bookedCount: c.booked_count,
+        waitlistCount: c.waitlist_count,
+        description: c.description,
+        difficulty: c.difficulty,
+        category: c.category,
+        room: c.room
+      })));
+    } catch (error) {
+      console.error('Load courses error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDate]);
+
+  const loadBookings = useCallback(async () => {
+    if (!checkLogin()) {
+      setBookings([]);
+      return;
+    }
+    
+    try {
+      const data = await bookingAPI.getBookings();
+      setBookings(data.list || data || []);
+    } catch (error) {
+      console.error('Load bookings error:', error);
+    }
+  }, [checkLogin]);
+
+  useDidShow(() => {
+    if (weekDates.length === 0) {
+      initDates();
+    }
+    loadCourses();
+    loadBookings();
+  });
 
   const dayCourses = useMemo(() => {
     return courses
@@ -36,29 +91,60 @@ const SchedulePage: React.FC = () => {
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [courses, selectedDate]);
 
-  const bookedIds = getBookedCourseIds();
-  const waitlistIds = getWaitlistCourseIds();
+  const bookedIds = useMemo(() => {
+    return bookings
+      .filter(b => b.status === 'booked')
+      .map(b => b.courseId);
+  }, [bookings]);
+
+  const waitlistIds = useMemo(() => {
+    return bookings
+      .filter(b => b.status === 'waitlist')
+      .map(b => b.courseId);
+  }, [bookings]);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
   };
 
-  const handleBook = (courseId: string) => {
-    const result = bookCourse(courseId);
-    Taro.showToast({
-      title: result.message,
-      icon: result.success ? 'success' : 'none',
-      duration: 2000
-    });
+  const handleBook = async (courseId: string) => {
+    if (!checkLogin()) {
+      Taro.navigateTo({ url: '/pages/login/index' });
+      return;
+    }
+
+    try {
+      const data = await bookingAPI.createBooking(courseId);
+      Taro.showToast({
+        title: data.message || '预约成功',
+        icon: 'success',
+        duration: 2000
+      });
+      loadCourses();
+      loadBookings();
+    } catch (error) {
+      console.error('Book course error:', error);
+    }
   };
 
-  const handleWaitlist = (courseId: string) => {
-    const result = joinWaitlist(courseId);
-    Taro.showToast({
-      title: result.message,
-      icon: result.success ? 'success' : 'none',
-      duration: 2000
-    });
+  const handleWaitlist = async (courseId: string) => {
+    if (!checkLogin()) {
+      Taro.navigateTo({ url: '/pages/login/index' });
+      return;
+    }
+
+    try {
+      const data = await bookingAPI.createBooking(courseId);
+      Taro.showToast({
+        title: data.message || '候补成功',
+        icon: 'success',
+        duration: 2000
+      });
+      loadCourses();
+      loadBookings();
+    } catch (error) {
+      console.error('Join waitlist error:', error);
+    }
   };
 
   const goToDetail = (courseId: string) => {
@@ -67,18 +153,13 @@ const SchedulePage: React.FC = () => {
     });
   };
 
-  const handleRefresh = () => {
+  const onRefresh = () => {
+    loadCourses();
+    loadBookings();
     setTimeout(() => {
       Taro.stopPullDownRefresh();
     }, 1000);
   };
-
-  useEffect(() => {
-    Taro.eventCenter.on('pulldownrefresh', handleRefresh);
-    return () => {
-      Taro.eventCenter.off('pulldownrefresh', handleRefresh);
-    };
-  }, []);
 
   return (
     <View className={styles.page}>
@@ -93,13 +174,15 @@ const SchedulePage: React.FC = () => {
       <ScrollView
         scrollY
         className={styles.content}
-        onPullDownRefresh={handleRefresh}
+        onPullDownRefresh={onRefresh}
+        refresherEnabled
+        refresherTriggered={loading}
       >
         <Text className={styles.sectionTitle}>
           当日课程 · {dayCourses.length}节
         </Text>
 
-        {dayCourses.length === 0 ? (
+        {dayCourses.length === 0 && !loading ? (
           <View className={styles.emptyState}>
             <View className={styles.emptyIcon}>📅</View>
             <Text className={styles.emptyText}>当日暂无课程安排</Text>

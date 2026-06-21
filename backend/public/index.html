@@ -52,6 +52,7 @@
       padding: 8px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      flex-wrap: wrap;
     }
     
     .tab-btn {
@@ -91,7 +92,7 @@
     
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
@@ -118,6 +119,7 @@
     .stat-card.success .value { color: #00B42A; }
     .stat-card.warning .value { color: #FF7D00; }
     .stat-card.error .value { color: #F53F3F; }
+    .stat-card.info .value { color: #00B4D8; }
     
     table {
       width: 100%;
@@ -199,6 +201,7 @@
     .badge-error { background: #ffece8; color: #F53F3F; }
     .badge-info { background: #e8f7ff; color: #00B4D8; }
     .badge-default { background: #f2f3f5; color: #86909c; }
+    .badge-primary { background: #fff1eb; color: #FF6B35; }
     
     .date-picker {
       display: flex;
@@ -316,6 +319,7 @@
       display: flex;
       gap: 12px;
       margin-bottom: 16px;
+      align-items: center;
     }
     
     .checkbox {
@@ -335,6 +339,188 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+    }
+
+    .qrcode-section {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .qrcode-box {
+      width: 200px;
+      height: 200px;
+      border: 2px dashed #FF6B35;
+      border-radius: 12px;
+      margin: 0 auto 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff9f7;
+    }
+    
+    .qrcode-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    
+    .qrcode-code {
+      font-size: 20px;
+      font-weight: 700;
+      color: #FF6B35;
+      letter-spacing: 4px;
+    }
+    
+    .qrcode-desc {
+      font-size: 14px;
+      color: #86909c;
+      margin-top: 8px;
+    }
+
+    .scan-input-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .scan-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #FF6B35;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    
+    .scan-input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255,107,53,0.2);
+    }
+
+    .checkin-result {
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin-top: 20px;
+    }
+    
+    .checkin-result.success {
+      background: #e8ffea;
+      border: 2px solid #00B42A;
+    }
+    
+    .checkin-result.warning {
+      background: #fff4e6;
+      border: 2px solid #FF7D00;
+    }
+    
+    .checkin-result.error {
+      background: #ffece8;
+      border: 2px solid #F53F3F;
+    }
+    
+    .checkin-result-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    
+    .checkin-result-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .checkin-result-info {
+      font-size: 14px;
+      color: #4e5969;
+    }
+
+    .sub-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #f2f3f5;
+    }
+    
+    .sub-tab-btn {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      color: #4e5969;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    
+    .sub-tab-btn.active {
+      color: #FF6B35;
+      border-bottom-color: #FF6B35;
+      font-weight: 500;
+    }
+
+    .member-search-input {
+      padding: 10px 16px;
+      border: 1px solid #e5e6eb;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 300px;
+      margin-bottom: 16px;
+    }
+
+    .code-btn {
+      background: #00B4D8;
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    .code-btn:hover {
+      background: #0096C7;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    
+    .modal-content h3 {
+      margin-bottom: 20px;
+      color: #1d2129;
+    }
+    
+    .modal-close {
+      margin-top: 20px;
+      padding: 10px 24px;
+      background: #f2f3f5;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -361,13 +547,14 @@
       <h1>FitStudio 教练管理后台</h1>
       <div class="user-info">
         <span id="userName">管理员</span>
-        <button class="btn btn-secondary" onclick="handleLogout()" style="padding: 6px 16px;">退出</button>
+        <button class="btn" style="background:rgba(255,255,255,0.2);color:white;" onclick="handleLogout()">退出</button>
       </div>
     </div>
 
     <div class="container">
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('checkin')">签到管理</button>
+        <button class="tab-btn" onclick="switchTab('scan')">扫码签到</button>
         <button class="tab-btn" onclick="switchTab('courses')">课程管理</button>
         <button class="tab-btn" onclick="switchTab('stats')">数据统计</button>
         <button class="tab-btn" onclick="switchTab('members')">会员管理</button>
@@ -380,6 +567,7 @@
             <select id="courseSelect" onchange="loadCourseBookings()">
               <option value="">选择今日课程...</option>
             </select>
+            <button class="code-btn" style="margin-left: 12px;" onclick="showCheckinCode()">显示签到码</button>
           </div>
           
           <div id="checkinActions" class="action-bar" style="display:none;">
@@ -392,6 +580,32 @@
           <div id="bookingsList">
             <div class="empty-state">请选择课程查看预约名单</div>
           </div>
+        </div>
+      </div>
+
+      <div id="scanPage" class="page-content">
+        <div class="card">
+          <h2>扫码签到</h2>
+          <p style="color:#86909c; margin-bottom:16px; font-size:14px;">输入签到码或扫码识别课程，选择会员完成签到</p>
+          
+          <div class="scan-input-row">
+            <input type="text" id="scanCode" class="scan-input" placeholder="输入签到码（如 CKABC123）" onkeyup="if(event.key==='Enter') scanCheckin()">
+            <button class="btn btn-primary" onclick="scanCheckin()">识别签到码</button>
+          </div>
+
+          <div id="scanCourseInfo" style="display:none;">
+            <div class="card" style="background:#f8f9fa; margin-bottom:16px;">
+              <h3 id="scanCourseName" style="margin-bottom:8px;"></h3>
+              <p id="scanCourseTime" style="color:#86909c; font-size:14px;"></p>
+            </div>
+            
+            <h3 style="margin-bottom:12px;">选择会员签到</h3>
+            <div id="scanMemberList">
+              <div class="empty-state">暂无预约会员</div>
+            </div>
+          </div>
+
+          <div id="scanResult" style="display:none;"></div>
         </div>
       </div>
 
@@ -415,6 +629,11 @@
       <div id="statsPage" class="page-content">
         <div class="card">
           <h2>本周数据概览</h2>
+          <div class="date-picker">
+            <input type="date" id="statsStartDate2" onchange="loadWeeklyStats()">
+            <span>至</span>
+            <input type="date" id="statsEndDate2" onchange="loadWeeklyStats()">
+          </div>
           <div id="weeklyStats">
             <div class="empty-state">加载中...</div>
           </div>
@@ -431,9 +650,7 @@
       <div id="membersPage" class="page-content">
         <div class="card">
           <h2>会员列表</h2>
-          <div class="date-picker">
-            <input type="text" id="memberSearch" placeholder="搜索会员姓名或手机号..." onkeyup="searchMembers()">
-          </div>
+          <input type="text" id="memberSearch" class="member-search-input" placeholder="搜索会员姓名或手机号..." onkeyup="searchMembers()">
           <div id="membersList">
             <div class="empty-state">加载中...</div>
           </div>
@@ -442,11 +659,29 @@
     </div>
   </div>
 
+  <div id="qrcodeModal" class="modal">
+    <div class="modal-content">
+      <h3>课程签到码</h3>
+      <div class="qrcode-section">
+        <div class="qrcode-box">
+          <div class="qrcode-icon">📱</div>
+          <div id="qrcodeCode" class="qrcode-code">------</div>
+        </div>
+        <div id="qrcodeCourseName" style="font-size:16px; font-weight:600; margin-bottom:4px;"></div>
+        <div id="qrcodeCourseTime" style="font-size:14px; color:#86909c;"></div>
+        <p class="qrcode-desc">出示此二维码或签到码给教练扫码签到</p>
+      </div>
+      <button class="modal-close" onclick="closeQrcodeModal()">关闭</button>
+    </div>
+  </div>
+
   <script>
     const API_BASE = 'http://localhost:3000/api';
     let token = localStorage.getItem('token');
     let currentTab = 'checkin';
     let selectedMembers = new Set();
+    let currentCourseId = null;
+    let currentScanCourseId = null;
 
     if (token) {
       showMainApp();
@@ -567,6 +802,8 @@
       
       document.getElementById('statsStartDate').value = fmt(startOfWeek);
       document.getElementById('statsEndDate').value = fmt(endOfWeek);
+      document.getElementById('statsStartDate2').value = fmt(startOfWeek);
+      document.getElementById('statsEndDate2').value = fmt(endOfWeek);
     }
 
     async function loadTodayCourses() {
@@ -580,7 +817,7 @@
         data.data.forEach(course => {
           const option = document.createElement('option');
           option.value = course.id;
-          option.textContent = `${course.start_time}-${course.end_time} ${course.name} (${course.coach_name})`;
+          option.textContent = `${course.start_time}-${course.end_time} ${course.name} (${course.coach_name}) - 已约${course.booked_count}人`;
           select.appendChild(option);
         });
       } catch (error) {
@@ -594,6 +831,7 @@
       const actionsEl = document.getElementById('checkinActions');
       
       selectedMembers.clear();
+      currentCourseId = courseId;
       updateSelectedCount();
 
       if (!courseId) {
@@ -697,7 +935,7 @@
         });
 
         if (data.success) {
-          alert('签到成功');
+          alert(data.message);
           loadCourseBookings();
         } else {
           alert(data.message);
@@ -708,7 +946,10 @@
     }
 
     async function batchCheckin() {
-      const courseId = document.getElementById('courseSelect').value;
+      if (!currentCourseId) {
+        alert('请先选择课程');
+        return;
+      }
       
       if (selectedMembers.size === 0) {
         alert('请选择要签到的会员');
@@ -719,7 +960,7 @@
         const data = await apiCall('/checkins/batch', {
           method: 'POST',
           body: JSON.stringify({
-            courseId,
+            courseId: currentCourseId,
             userIds: Array.from(selectedMembers),
             method: 'manual'
           })
@@ -733,6 +974,145 @@
         }
       } catch (error) {
         alert('批量签到失败');
+      }
+    }
+
+    async function showCheckinCode() {
+      if (!currentCourseId) {
+        alert('请先选择课程');
+        return;
+      }
+
+      try {
+        const data = await apiCall(`/courses/${currentCourseId}/checkin-code`);
+        
+        if (data.success) {
+          document.getElementById('qrcodeCode').textContent = data.data.checkinCode;
+          document.getElementById('qrcodeCourseName').textContent = data.data.courseName;
+          document.getElementById('qrcodeCourseTime').textContent = `${data.data.date} ${data.data.startTime}`;
+          document.getElementById('qrcodeModal').classList.add('active');
+        }
+      } catch (error) {
+        alert('获取签到码失败');
+      }
+    }
+
+    function closeQrcodeModal() {
+      document.getElementById('qrcodeModal').classList.remove('active');
+    }
+
+    async function scanCheckin() {
+      const code = document.getElementById('scanCode').value.trim();
+      
+      if (!code) {
+        alert('请输入签到码');
+        return;
+      }
+
+      try {
+        const data = await apiCall('/checkins/scan', {
+          method: 'POST',
+          body: JSON.stringify({ code })
+        });
+
+        if (data.success) {
+          currentScanCourseId = data.data.courseId;
+          document.getElementById('scanCourseInfo').style.display = 'block';
+          document.getElementById('scanCourseName').textContent = data.data.courseName;
+          document.getElementById('scanCourseTime').textContent = `${data.data.date} ${data.data.startTime} - ${data.data.endTime} | ${data.data.room}`;
+          
+          loadScanMembers(data.data.courseId);
+        } else {
+          alert(data.message);
+        }
+      } catch (error) {
+        alert('识别签到码失败');
+      }
+    }
+
+    async function loadScanMembers(courseId) {
+      const listEl = document.getElementById('scanMemberList');
+      
+      try {
+        const data = await apiCall(`/courses/${courseId}/bookings`);
+        const bookings = data.data.filter(b => b.status === 'booked' || b.status === 'checked_in');
+        
+        if (bookings.length === 0) {
+          listEl.innerHTML = '<div class="empty-state">暂无预约会员</div>';
+          return;
+        }
+
+        let html = '<table><thead><tr><th>会员</th><th>手机号</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+        
+        bookings.forEach(b => {
+          const isChecked = b.status === 'checked_in';
+          html += `
+            <tr>
+              <td>${b.user_name}</td>
+              <td>${b.phone}</td>
+              <td>
+                <span class="badge ${isChecked ? 'badge-success' : 'badge-info'}">
+                  ${isChecked ? '已签到' : '待签到'}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-primary" 
+                  ${isChecked ? 'disabled' : ''}
+                  onclick="scanConfirmCheckin('${b.user_id}')">
+                  ${isChecked ? '已签到' : '确认签到'}
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+        
+        html += '</tbody></table>';
+        listEl.innerHTML = html;
+      } catch (error) {
+        listEl.innerHTML = '<div class="empty-state">加载失败</div>';
+      }
+    }
+
+    async function scanConfirmCheckin(userId) {
+      const code = document.getElementById('scanCode').value.trim();
+      
+      try {
+        const data = await apiCall('/checkins/scan-confirm', {
+          method: 'POST',
+          body: JSON.stringify({ code, userId })
+        });
+
+        if (data.success) {
+          const resultEl = document.getElementById('scanResult');
+          if (data.alreadyCheckedIn) {
+            resultEl.innerHTML = `
+              <div class="checkin-result warning">
+                <div class="checkin-result-icon">⚠️</div>
+                <div class="checkin-result-title">已签到</div>
+                <div class="checkin-result-info">${data.data.user_name} 已在 ${data.data.checkin_time} 完成签到</div>
+              </div>
+            `;
+          } else {
+            resultEl.innerHTML = `
+              <div class="checkin-result success">
+                <div class="checkin-result-icon">✅</div>
+                <div class="checkin-result-title">签到成功</div>
+                <div class="checkin-result-info">${data.data.user_name} - ${data.data.course_name}<br>已扣除1次团课</div>
+              </div>
+            `;
+          }
+          resultEl.style.display = 'block';
+          
+          setTimeout(() => {
+            resultEl.style.display = 'none';
+          }, 3000);
+          
+          loadScanMembers(currentScanCourseId);
+        } else {
+          alert(data.message);
+        }
+      } catch (error) {
+        alert('签到失败');
       }
     }
 
@@ -752,17 +1132,25 @@
               <div class="label">课程总数</div>
               <div class="value">${summary.total_courses}</div>
             </div>
-            <div class="stat-card success">
+            <div class="stat-card info">
               <div class="label">预约人次</div>
               <div class="value">${summary.total_booked}</div>
             </div>
-            <div class="stat-card warning">
+            <div class="stat-card success">
               <div class="label">实到人次</div>
               <div class="value">${summary.total_checked}</div>
             </div>
             <div class="stat-card error">
               <div class="label">爽约人次</div>
               <div class="value">${summary.total_missed}</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="label">平均出席率</div>
+              <div class="value">${summary.avg_attendance_rate}%</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">教练课时费</div>
+              <div class="value">¥${summary.total_coach_fee}</div>
             </div>
           </div>
           <table>
@@ -790,7 +1178,7 @@
               <td>${c.booked_count}</td>
               <td>${c.checked_count}</td>
               <td>${c.missed_count}</td>
-              <td>${c.attendance_rate}%</td>
+              <td><span class="badge ${c.attendance_rate >= 80 ? 'badge-success' : c.attendance_rate >= 60 ? 'badge-warning' : 'badge-error'}">${c.attendance_rate}%</span></td>
             </tr>
           `;
         });
@@ -803,8 +1191,8 @@
     }
 
     async function loadWeeklyStats() {
-      const startDate = document.getElementById('statsStartDate')?.value || '';
-      const endDate = document.getElementById('statsEndDate')?.value || '';
+      const startDate = document.getElementById('statsStartDate2').value;
+      const endDate = document.getElementById('statsEndDate2').value;
       
       try {
         const data = await apiCall(`/stats/weekly?startDate=${startDate}&endDate=${endDate}`);
@@ -816,11 +1204,11 @@
               <div class="label">课程总数</div>
               <div class="value">${summary.total_courses}</div>
             </div>
-            <div class="stat-card success">
+            <div class="stat-card info">
               <div class="label">预约人次</div>
               <div class="value">${summary.total_booked}</div>
             </div>
-            <div class="stat-card warning">
+            <div class="stat-card success">
               <div class="label">实到人次</div>
               <div class="value">${summary.total_checked}</div>
             </div>
@@ -828,11 +1216,11 @@
               <div class="label">爽约人次</div>
               <div class="value">${summary.total_missed}</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card warning">
               <div class="label">平均出席率</div>
               <div class="value">${summary.avg_attendance_rate}%</div>
             </div>
-            <div class="stat-card success">
+            <div class="stat-card">
               <div class="label">教练课时费合计</div>
               <div class="value">¥${summary.total_coach_fee}</div>
             </div>
@@ -844,13 +1232,13 @@
     }
 
     async function loadCoachStats() {
-      const startDate = document.getElementById('statsStartDate')?.value || '';
-      const endDate = document.getElementById('statsEndDate')?.value || '';
+      const startDate = document.getElementById('statsStartDate2').value;
+      const endDate = document.getElementById('statsEndDate2').value;
 
       try {
         const data = await apiCall(`/stats/coaches?startDate=${startDate}&endDate=${endDate}`);
 
-        let html = '<table><thead><tr><th>教练</th><th>课程数</th><th>总时长</th><th>签到人次</th><th>课时费</th></tr></thead><tbody>';
+        let html = '<table><thead><tr><th>教练</th><th>课程数</th><th>总时长</th><th>预约人次</th><th>签到人次</th><th>平均出席率</th><th>课时费</th></tr></thead><tbody>';
         
         data.data.forEach(coach => {
           html += `
@@ -858,7 +1246,9 @@
               <td>${coach.name}</td>
               <td>${coach.course_count}</td>
               <td>${coach.total_duration || 0} 分钟</td>
+              <td>${coach.total_booked}</td>
               <td>${coach.total_checked}</td>
+              <td>${coach.avg_attendance}%</td>
               <td style="color:#FF6B35;font-weight:600;">¥${coach.total_fee}</td>
             </tr>
           `;

@@ -1,0 +1,161 @@
+.container {
+  min-height: 100vh;
+  background: #F5F6F7;
+}
+
+.tabs {
+  display: flex;
+  background: #FFFFFF;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tabItem {
+  flex: 1;
+  text-align: center;
+  padding: 16px 0;
+  font-size: 15px;
+  color: #4E5969;
+  position: relative;
+  font-weight: 500;
+}
+
+.tabItem.active {
+  color: #FF6B35;
+}
+
+.tabItem.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  background: #FF6B35;
+  border-radius: 2px;
+}
+
+.list {
+  padding: 16px;
+}
+
+.bookingItem {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.courseInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.courseName {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1D2129;
+}
+
+.status {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.statusBooked {
+  background: #E8F7FF;
+  color: #00B4D8;
+}
+
+.statusCheckedIn {
+  background: #E8FFEA;
+  color: #00B42A;
+}
+
+.statusMissed {
+  background: #FFECE8;
+  color: #F53F3F;
+}
+
+.statusCancelled {
+  background: #F2F3F5;
+  color: #86909C;
+}
+
+.statusWaitlist {
+  background: #FFF4E6;
+  color: #FF7D00;
+}
+
+.courseMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #86909C;
+  margin-bottom: 12px;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bottomRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #F2F3F5;
+}
+
+.coachInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #4E5969;
+}
+
+.coachAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #F2F3F5;
+}
+
+.actionBtn {
+  padding: 6px 16px;
+  border-radius: 16px;
+  font-size: 13px;
+  border: none;
+}
+
+.cancelBtn {
+  background: #FFF1EB;
+  color: #FF6B35;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 80px 20px;
+  color: #86909C;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.emptyText {
+  font-size: 14px;
+}

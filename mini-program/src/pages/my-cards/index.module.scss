@@ -1,0 +1,201 @@
+.container {
+  min-height: 100vh;
+  background: #F5F6F7;
+  padding-bottom: 24px;
+}
+
+.tabs {
+  display: flex;
+  background: #FFFFFF;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tabItem {
+  flex: 1;
+  text-align: center;
+  padding: 16px 0;
+  font-size: 15px;
+  color: #4E5969;
+  position: relative;
+  font-weight: 500;
+}
+
+.tabItem.active {
+  color: #FF6B35;
+}
+
+.tabItem.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  background: #FF6B35;
+  border-radius: 2px;
+}
+
+.content {
+  padding: 16px;
+}
+
+.cardList {
+  margin-bottom: 24px;
+}
+
+.card {
+  background: linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: #FFFFFF;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.cardName {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.cardStats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.remaining {
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.total {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.expireDate {
+  font-size: 12px;
+  opacity: 0.8;
+  position: relative;
+  z-index: 1;
+}
+
+.transactionSection {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1D2129;
+  margin-bottom: 16px;
+}
+
+.transList {
+  /* 列表样式 */
+}
+
+.transItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #F2F3F5;
+}
+
+.transItem:last-child {
+  border-bottom: none;
+}
+
+.transInfo {
+  flex: 1;
+}
+
+.transTitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1D2129;
+  margin-bottom: 4px;
+}
+
+.transDesc {
+  font-size: 12px;
+  color: #86909C;
+}
+
+.transChange {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.transDeduct {
+  color: #F53F3F;
+}
+
+.transAdd {
+  color: #00B42A;
+}
+
+.transBalance {
+  font-size: 12px;
+  color: #86909C;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #86909C;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.emptyText {
+  font-size: 14px;
+}
+
+.cardDisabled {
+  opacity: 0.6;
+  filter: grayscale(50%);
+}
+
+.cardBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  z-index: 1;
+}
