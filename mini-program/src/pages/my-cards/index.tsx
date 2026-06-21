@@ -71,6 +71,12 @@ export default function MyCards() {
     return dateStr.replace('T', ' ').substring(0, 16);
   };
 
+  const handleTransClick = (item: any) => {
+    if (item && item.related_booking_id) {
+      Taro.navigateTo({ url: `/pages/booking-detail/index?id=${item.related_booking_id}` });
+    }
+  };
+
   return (
     <View className={styles.container}>
       <View className={styles.tabs}>
@@ -127,14 +133,21 @@ export default function MyCards() {
             ) : (
               <View className={styles.transList}>
                 {transactions.map(item => (
-                  <View key={item.id} className={styles.transItem}>
+                  <View 
+                    key={item.id} 
+                    className={`${styles.transItem} ${item.related_booking_id ? styles.transClickable : ''}`}
+                    onClick={() => handleTransClick(item)}
+                  >
                     <View className={styles.transInfo}>
                       <Text className={styles.transTitle}>
-                        {getTransTypeText(item.type)}
+                        {item.course_name ? `${item.course_name} · ` : ''}{getTransTypeText(item.type)}
                       </Text>
                       <Text className={styles.transDesc}>
-                        {item.remark || formatDate(item.created_at)}
+                        {item.coach_name ? `教练：${item.coach_name} · ` : ''}{item.remark || formatDate(item.created_at)}
                       </Text>
+                      {item.related_booking_id && (
+                        <Text className={styles.transLink}>点击查看课程详情 →</Text>
+                      )}
                     </View>
                     <View style={{ textAlign: 'right' }}>
                       <Text

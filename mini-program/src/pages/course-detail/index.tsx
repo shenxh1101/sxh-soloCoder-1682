@@ -3,7 +3,7 @@ import { View, Text, Image, Button, ScrollView } from '@tarojs/components';
 import Taro, { useRouter, useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
 import { courseAPI, bookingAPI } from '@/services/api';
-import { isCourseFull, getDifficultyText, getDifficultyColor } from '@/utils/date';
+import { isCourseFull, getDifficultyText, getDifficultyColor, canCancelBooking } from '@/utils/date';
 import { Course, Booking } from '@/types';
 import styles from './index.module.scss';
 
@@ -63,7 +63,26 @@ const CourseDetailPage: React.FC = () => {
     
     try {
       const data = await bookingAPI.getBookings();
-      setBookings(data.list || data || []);
+      const raw = data.list || data || [];
+      const mapped: Booking[] = raw.map((b: any) => ({
+        id: b.id,
+        courseId: b.course_id,
+        courseName: b.course_name,
+        coachName: b.coach_name || '待定',
+        coachAvatar: b.coach_avatar,
+        courseDate: b.course_date || b.date,
+        startTime: b.start_time,
+        endTime: b.end_time,
+        status: b.has_checked_in === 1 ? 'checked_in' : b.status,
+        bookedAt: b.booked_at,
+        cancelledAt: b.cancelled_at,
+        waitlistPosition: b.waitlist_position,
+        room: b.room,
+        hasCheckedIn: b.has_checked_in,
+        checkinTime: b.checkin_time,
+        checkinMethod: b.checkin_method
+      }));
+      setBookings(mapped);
     } catch (error) {
       console.error('Load bookings error:', error);
     }
@@ -74,17 +93,31 @@ const CourseDetailPage: React.FC = () => {
     loadBookings();
   });
 
-  const isBooked = useMemo(() => {
-    return bookings.some(b => b.courseId === courseId && b.status === 'booked');
+  const myBooking = useMemo(() => {
+    return bookings.find(b => b.courseId === courseId);
   }, [bookings, courseId]);
+
+  const isBooked = useMemo(() => {
+    return myBooking?.status === 'booked';
+  }, [myBooking]);
 
   const isWaitlisted = useMemo(() => {
-    return bookings.some(b => b.courseId === courseId && b.status === 'waitlist');
-  }, [bookings, courseId]);
+    return myBooking?.status === 'waitlist';
+  }, [myBooking]);
 
   const hasCheckedIn = useMemo(() => {
-    return bookings.some(b => b.courseId === courseId && b.status === 'checked_in');
-  }, [bookings, courseId]);
+    return myBooking?.status === 'checked_in' || myBooking?.hasCheckedIn === 1;
+  }, [myBooking]);
+
+  const isCancelled = useMemo(() => {
+    return myBooking?.status === 'cancelled';
+  }, [myBooking]);
+
+  const canCancel = useMemo(() => {
+    if (!course || !myBooking) return false;
+    if (hasCheckedIn || isCancelled) return false;
+    return canCancelBooking(course.date, course.startTime);
+  }, [course, myBooking, hasCheckedIn, isCancelled]);
 
   const handleBook = async () => {
     if (!course) return;
@@ -98,10 +131,31 @@ const CourseDetailPage: React.FC = () => {
         icon: 'success',
         duration: 2000
       });
-      loadCourse();
-      loadBookings();
+      await Promise.all([loadCourse(), loadBookings()]);
     } catch (error) {
       console.error('Book course error:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!myBooking) return;
+
+    const res = await Taro.showModal({
+      title: '确认取消',
+      content: '取消后名额会被释放，确定要取消预约吗？',
+      confirmColor: '#F53F3F'
+    });
+    if (!res.confirm) return;
+
+    setActionLoading(true);
+    try {
+      await bookingAPI.cancelBooking(myBooking.id);
+      Taro.showToast({ title: '取消成功', icon: 'success' });
+      await Promise.all([loadCourse(), loadBookings()]);
+    } catch (error) {
+      console.error('Cancel booking error:', error);
     } finally {
       setActionLoading(false);
     }
@@ -224,6 +278,17 @@ const CourseDetailPage: React.FC = () => {
               </>
             )}
           </View>
+
+          {canCancel && (
+            <Button
+              className={styles.cancelButton}
+              onClick={handleCancel}
+              loading={actionLoading}
+              disabled={actionLoading}
+            >
+              取消预约
+            </Button>
+          )}
           
           <Button
             className={classnames(styles.bookButton, {
@@ -232,10 +297,10 @@ const CourseDetailPage: React.FC = () => {
               [styles.full]: full && !isWaitlisted
             })}
             onClick={handleBook}
-            disabled={isBooked || hasCheckedIn || actionLoading}
+            disabled={isBooked || isWaitlisted || hasCheckedIn || isCancelled || actionLoading}
             loading={actionLoading}
           >
-            {hasCheckedIn ? '已签到' : isBooked ? '已预约' : isWaitlisted ? '候补中' : full ? '加入候补' : '立即约课'}
+            {hasCheckedIn ? '已签到' : isBooked ? '已预约' : isWaitlisted ? '候补中' : isCancelled ? '已取消' : full ? '加入候补' : '立即约课'}
           </Button>
         </View>
       )}

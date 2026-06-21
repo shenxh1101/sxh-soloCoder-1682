@@ -333,9 +333,201 @@ const getMemberStats = (req, res) => {
   });
 };
 
+const getFilteredMemberBookings = (req, res) => {
+  const { memberId, startDate, endDate } = req.query;
+  const now = dayjs();
+
+  let query = `
+    SELECT b.*, c.name as course_name, c.date, c.start_time, c.end_time, c.room, c.category,
+      co.name as coach_name,
+      CASE 
+        WHEN EXISTS (SELECT 1 FROM checkins ch WHERE ch.booking_id = b.id) THEN 1 
+        ELSE 0 
+      END as has_checked_in,
+      ch.checkin_time, ch.checkin_method,
+      mc.name as card_name,
+      ct.balance_after
+    FROM bookings b
+    LEFT JOIN courses c ON b.course_id = c.id
+    LEFT JOIN coaches co ON c.coach_id = co.id
+    LEFT JOIN checkins ch ON ch.booking_id = b.id
+    LEFT JOIN card_transactions ct ON ct.related_booking_id = b.id
+    LEFT JOIN membership_cards mc ON ct.card_id = mc.id
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (memberId) {
+    query += ' AND b.user_id = ?';
+    params.push(memberId);
+  }
+  if (startDate) {
+    query += ' AND c.date >= ?';
+    params.push(startDate);
+  }
+  if (endDate) {
+    query += ' AND c.date <= ?';
+    params.push(endDate);
+  }
+
+  query += ' ORDER BY c.date DESC, c.start_time DESC LIMIT 500';
+
+  const bookings = db.prepare(query).all(...params);
+
+  const result = bookings.map(b => {
+    const courseEndTime = dayjs(`${b.date} ${b.end_time}`);
+    const isEnded = courseEndTime.isBefore(now);
+    const isMissed = isEnded && b.has_checked_in === 0 && (b.status === 'booked' || b.status === 'checked_in' || b.status === 'missed');
+    return {
+      ...b,
+      status: b.has_checked_in === 1 ? 'checked_in' : isMissed ? 'missed' : b.status,
+      is_missed: isMissed ? 1 : 0
+    };
+  });
+
+  const totalBooked = result.filter(r => ['booked', 'checked_in', 'missed'].includes(r.status)).length;
+  const totalChecked = result.filter(r => r.status === 'checked_in').length;
+  const totalMissed = result.filter(r => r.status === 'missed').length;
+  const totalCancelled = result.filter(r => r.status === 'cancelled').length;
+  const totalWaitlist = result.filter(r => r.status === 'waitlist').length;
+  const attendanceRate = totalBooked > 0 ? ((totalChecked / totalBooked) * 100).toFixed(1) : '0.0';
+
+  const member = memberId ? db.prepare('SELECT id, name, phone, avatar FROM users WHERE id = ?').get(memberId) : null;
+
+  res.json({
+    success: true,
+    data: {
+      member,
+      list: result,
+      summary: {
+        total_booked: totalBooked,
+        total_checked: totalChecked,
+        total_missed: totalMissed,
+        total_cancelled: totalCancelled,
+        total_waitlist: totalWaitlist,
+        attendance_rate: attendanceRate,
+        total_records: result.length
+      }
+    }
+  });
+};
+
+const exportFilteredMemberBookings = async (req, res) => {
+  const { memberId, startDate, endDate } = req.query;
+  const now = dayjs();
+
+  let query = `
+    SELECT b.*, c.name as course_name, c.date, c.start_time, c.end_time, c.room, c.category,
+      co.name as coach_name, u.name as user_name, u.phone,
+      CASE 
+        WHEN EXISTS (SELECT 1 FROM checkins ch WHERE ch.booking_id = b.id) THEN 1 
+        ELSE 0 
+      END as has_checked_in,
+      ch.checkin_time, ch.checkin_method,
+      mc.name as card_name,
+      ct.balance_after
+    FROM bookings b
+    LEFT JOIN courses c ON b.course_id = c.id
+    LEFT JOIN coaches co ON c.coach_id = co.id
+    LEFT JOIN users u ON b.user_id = u.id
+    LEFT JOIN checkins ch ON ch.booking_id = b.id
+    LEFT JOIN card_transactions ct ON ct.related_booking_id = b.id
+    LEFT JOIN membership_cards mc ON ct.card_id = mc.id
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (memberId) {
+    query += ' AND b.user_id = ?';
+    params.push(memberId);
+  }
+  if (startDate) {
+    query += ' AND c.date >= ?';
+    params.push(startDate);
+  }
+  if (endDate) {
+    query += ' AND c.date <= ?';
+    params.push(endDate);
+  }
+
+  query += ' ORDER BY c.date DESC, c.start_time DESC LIMIT 500';
+
+  const rawBookings = db.prepare(query).all(...params);
+
+  const bookings = rawBookings.map(b => {
+    const courseEndTime = dayjs(`${b.date} ${b.end_time}`);
+    const isEnded = courseEndTime.isBefore(now);
+    const isMissed = isEnded && b.has_checked_in === 0 && (b.status === 'booked' || b.status === 'checked_in' || b.status === 'missed');
+    return {
+      ...b,
+      display_status: b.has_checked_in === 1 ? '已签到' : isMissed ? '爽约' : 
+        b.status === 'booked' ? '已预约' :
+        b.status === 'waitlist' ? '候补' :
+        b.status === 'cancelled' ? '已取消' : b.status
+    };
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('会员签到明细');
+
+  worksheet.columns = [
+    { header: '会员姓名', key: 'user_name', width: 12 },
+    { header: '手机号', key: 'phone', width: 14 },
+    { header: '课程日期', key: 'date', width: 12 },
+    { header: '课程时间', key: 'time', width: 16 },
+    { header: '课程名称', key: 'course_name', width: 18 },
+    { header: '教练', key: 'coach_name', width: 10 },
+    { header: '教室', key: 'room', width: 12 },
+    { header: '预约状态', key: 'display_status', width: 10 },
+    { header: '签到时间', key: 'checkin_time', width: 20 },
+    { header: '签到方式', key: 'checkin_method', width: 10 },
+    { header: '使用卡种', key: 'card_name', width: 16 },
+    { header: '扣次后剩余', key: 'balance_after', width: 12 }
+  ];
+
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF165DFF' }
+  };
+  worksheet.getRow(1).font.color = { argb: 'FFFFFFFF' };
+
+  for (const b of bookings) {
+    worksheet.addRow({
+      user_name: b.user_name,
+      phone: b.phone,
+      date: b.date,
+      time: `${b.start_time} - ${b.end_time}`,
+      course_name: b.course_name,
+      coach_name: b.coach_name,
+      room: b.room,
+      display_status: b.display_status,
+      checkin_time: b.checkin_time || '-',
+      checkin_method: b.checkin_method === 'scan' ? '扫码' : b.checkin_method === 'manual' ? '手动' : (b.checkin_method || '-'),
+      card_name: b.card_name || '-',
+      balance_after: b.balance_after !== undefined && b.balance_after !== null ? b.balance_after : '-'
+    });
+  }
+
+  worksheet.eachRow((row) => {
+    row.alignment = { vertical: 'middle', horizontal: 'center' };
+  });
+
+  const fileName = `会员签到明细_${startDate || 'all'}-${endDate || 'all'}.xlsx`;
+  
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  res.send(buffer);
+};
+
 module.exports = {
   getWeeklyStats,
   getCoachStats,
   exportWeeklyStats,
-  getMemberStats
+  getMemberStats,
+  getFilteredMemberBookings,
+  exportFilteredMemberBookings
 };

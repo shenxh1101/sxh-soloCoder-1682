@@ -522,6 +522,162 @@
       cursor: pointer;
       font-size: 14px;
     }
+
+    .checkin-detail-section {
+      margin-top: 16px;
+      text-align: left;
+    }
+
+    .checkin-detail-section h4 {
+      font-size: 14px;
+      color: #4e5969;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .member-basic-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .member-name-phone {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1d2129;
+    }
+
+    .remaining-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .remaining-badge.low {
+      background: linear-gradient(135deg, #F53F3F 0%, #FF7875 100%);
+    }
+
+    .cards-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+    }
+
+    .card-item {
+      background: white;
+      border: 1px solid #e5e6eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .card-item .card-name {
+      font-weight: 600;
+      color: #1d2129;
+      margin-bottom: 4px;
+    }
+
+    .card-item .card-remaining {
+      color: #FF6B35;
+      font-weight: 600;
+    }
+
+    .card-item .card-remaining.low {
+      color: #F53F3F;
+    }
+
+    .card-item .card-expire {
+      color: #86909c;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .recent-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .recent-item {
+      background: white;
+      border: 1px solid #f2f3f5;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .recent-item .recent-course {
+      color: #1d2129;
+      font-weight: 500;
+    }
+
+    .recent-item .recent-time {
+      color: #86909c;
+      font-size: 12px;
+    }
+
+    .error-tag {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      margin: 4px 0;
+    }
+
+    .error-tag.cancelled { background: #f2f3f5; color: #86909c; }
+    .error-tag.invalid_status { background: #fff4e6; color: #FF7D00; }
+    .error-tag.not_time_yet { background: #e8f7ff; color: #00B4D8; }
+    .error-tag.course_ended { background: #ffece8; color: #F53F3F; }
+    .error-tag.no_remaining_classes { background: #ffece8; color: #F53F3F; }
+    .error-tag.deduct_failed { background: #ffece8; color: #F53F3F; }
+    .error-tag.invalid_code { background: #ffece8; color: #F53F3F; }
+
+    .error-hint {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #4e5969;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.6);
+      border-radius: 6px;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar select,
+    .filter-bar input {
+      padding: 8px 12px;
+      border: 1px solid #e5e6eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .filter-bar select {
+      min-width: 200px;
+    }
+
+    .filter-bar label {
+      font-size: 14px;
+      color: #4e5969;
+    }
   </style>
 </head>
 <body>
@@ -558,6 +714,7 @@
         <button class="tab-btn" onclick="switchTab('courses')">课程管理</button>
         <button class="tab-btn" onclick="switchTab('stats')">数据统计</button>
         <button class="tab-btn" onclick="switchTab('members')">会员管理</button>
+        <button class="tab-btn" onclick="switchTab('member-stats')">会员明细</button>
       </div>
 
       <div id="checkinPage" class="page-content active">
@@ -648,6 +805,33 @@
           <input type="text" id="memberSearch" class="member-search-input" placeholder="搜索会员姓名或手机号..." onkeyup="searchMembers()">
           <div id="membersList">
             <div class="empty-state">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="member-statsPage" class="page-content">
+        <div class="card">
+          <h2>会员预约明细</h2>
+          <div class="filter-bar">
+            <label>会员</label>
+            <select id="memberStatsMemberSelect">
+              <option value="">全部会员</option>
+            </select>
+            <label>开始日期</label>
+            <input type="date" id="memberStatsStartDate">
+            <label>结束日期</label>
+            <input type="date" id="memberStatsEndDate">
+            <button class="btn btn-primary" onclick="loadMemberStats()">查询</button>
+            <button class="btn btn-secondary" onclick="exportMemberStats()">导出</button>
+          </div>
+          <div id="memberStatsSummary">
+            <div class="empty-state">请选择条件后查询</div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>明细列表</h2>
+          <div id="memberStatsList">
+            <div class="empty-state">请选择条件后查询</div>
           </div>
         </div>
       </div>
@@ -764,6 +948,7 @@
       loadWeeklyStats();
       loadCoachStats();
       loadMembers();
+      loadMembersForStatsDropdown();
       initDatePickers();
     }
 
@@ -785,6 +970,7 @@
       if (tab === 'courses') loadCourseList();
       if (tab === 'stats') { loadWeeklyStats(); loadCoachStats(); }
       if (tab === 'members') loadMembers();
+      if (tab === 'member-stats') { loadMembersForStatsDropdown(); }
     }
 
     function initDatePickers() {
@@ -800,6 +986,12 @@
       document.getElementById('statsEndDate').value = fmt(endOfWeek);
       document.getElementById('statsStartDate2').value = fmt(startOfWeek);
       document.getElementById('statsEndDate2').value = fmt(endOfWeek);
+      if (document.getElementById('memberStatsStartDate')) {
+        document.getElementById('memberStatsStartDate').value = fmt(startOfWeek);
+      }
+      if (document.getElementById('memberStatsEndDate')) {
+        document.getElementById('memberStatsEndDate').value = fmt(endOfWeek);
+      }
     }
 
     async function loadTodayCourses() {
@@ -997,6 +1189,152 @@
       document.getElementById('qrcodeModal').classList.remove('active');
     }
 
+    function getErrorTagInfo(errorType) {
+      const map = {
+        cancelled: { label: '预约已取消', cls: 'cancelled' },
+        invalid_status: { label: '状态无效', cls: 'invalid_status' },
+        not_time_yet: { label: '未到签到时间', cls: 'not_time_yet' },
+        course_ended: { label: '课程已结束', cls: 'course_ended' },
+        no_remaining_classes: { label: '剩余次数不足', cls: 'no_remaining_classes' },
+        deduct_failed: { label: '扣次失败', cls: 'deduct_failed' },
+        invalid_code: { label: '预约码无效', cls: 'invalid_code' }
+      };
+      return map[errorType] || { label: errorType || '签到失败', cls: 'invalid_code' };
+    }
+
+    function renderMemberBasicInfo(d) {
+      if (!d) return '';
+      const name = d.user_name || d.member_name || d.name || '';
+      const phone = d.user_phone || d.member_phone || d.phone || '';
+      const totalRemaining = typeof d.total_remaining === 'number' ? d.total_remaining : null;
+      const low = totalRemaining !== null && totalRemaining <= 3;
+      let html = '<div class="member-basic-info">';
+      html += `<span class="member-name-phone">${name}${phone ? '（' + phone + '）' : ''}</span>`;
+      if (totalRemaining !== null) {
+        html += `<span class="remaining-badge ${low ? 'low' : ''}">剩余 ${totalRemaining} 次</span>`;
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function renderMemberCards(cards) {
+      if (!cards || !cards.length) return '';
+      let html = '<div class="checkin-detail-section"><h4>会员卡</h4><div class="cards-list">';
+      cards.forEach(c => {
+        const remaining = typeof c.remaining === 'number' ? c.remaining : (typeof c.remaining_count === 'number' ? c.remaining_count : '-');
+        const low = typeof remaining === 'number' && remaining <= 3;
+        html += `
+          <div class="card-item">
+            <div class="card-name">${c.card_name || c.name || '会员卡'}</div>
+            <div class="card-remaining ${low ? 'low' : ''}">剩余 ${remaining} 次</div>
+            ${c.expire_date || c.valid_to ? `<div class="card-expire">有效期至 ${c.expire_date || c.valid_to}</div>` : ''}
+          </div>
+        `;
+      });
+      html += '</div></div>';
+      return html;
+    }
+
+    function renderRecentCheckins(recent) {
+      if (!recent || !recent.length) return '';
+      let html = '<div class="checkin-detail-section"><h4>最近5次签到记录</h4><div class="recent-list">';
+      recent.forEach(r => {
+        html += `
+          <div class="recent-item">
+            <span class="recent-course">${r.course_name || r.name || ''}</span>
+            <span class="recent-time">${r.course_date || r.date || ''} ${r.course_time || r.start_time || ''} ${r.checkin_time ? '· 签到 ' + (typeof r.checkin_time === 'string' && r.checkin_time.includes('T') ? r.checkin_time.split('T')[1].substring(0, 5) : r.checkin_time) : ''}</span>
+          </div>
+        `;
+      });
+      html += '</div></div>';
+      return html;
+    }
+
+    function renderErrorInfo(d) {
+      if (!d || !d.errorType) return '';
+      const info = getErrorTagInfo(d.errorType);
+      let html = `<div class="error-tag ${info.cls}">${info.label}</div>`;
+      if (d.errorType === 'not_time_yet' && d.open_checkin_time) {
+        html += `<div class="error-hint">开课前30分钟才能签到，开放签到时间：${d.open_checkin_time}</div>`;
+      }
+      if (d.errorType === 'no_remaining_classes') {
+        html += `<div class="error-hint">该会员会员卡剩余次数不足，请及时充值</div>`;
+      }
+      if (d.errorType === 'course_ended') {
+        html += `<div class="error-hint">课程已结束，无法签到</div>`;
+      }
+      if (d.errorType === 'cancelled') {
+        html += `<div class="error-hint">该预约已被取消</div>`;
+      }
+      if (d.errorType === 'invalid_code') {
+        html += `<div class="error-hint">预约码无效或已过期</div>`;
+      }
+      if (d.errorType === 'deduct_failed') {
+        html += `<div class="error-hint">扣次失败，请检查会员卡状态</div>`;
+      }
+      if (d.errorType === 'invalid_status') {
+        html += `<div class="error-hint">预约状态无效</div>`;
+      }
+      return html;
+    }
+
+    function renderScanResult(data) {
+      const d = data.data || {};
+      const resultEl = document.getElementById('scanResult');
+      resultEl.style.display = 'block';
+
+      let resultClass = 'success';
+      let icon = '✅';
+      let title = '签到成功';
+      let courseInfo = '';
+
+      if (!data.success) {
+        resultClass = 'error';
+        icon = '❌';
+        title = data.message || '签到失败';
+      } else if (data.alreadyCheckedIn) {
+        resultClass = 'warning';
+        icon = '⚠️';
+        title = '已签到';
+      }
+
+      if (d.course_name || d.course_date || d.course_time) {
+        courseInfo = `<div style="margin-top:4px; font-size:14px; color:#4e5969;">${d.course_name || ''} · ${d.course_date || ''} ${d.course_time || ''}${d.checkin_time ? '<br>签到时间：' + d.checkin_time : ''}</div>`;
+      } else if (d.course && d.course.name) {
+        courseInfo = `<div style="margin-top:4px; font-size:14px; color:#4e5969;">${d.course.name} · ${d.course.date || ''} ${d.course.start_time || ''}</div>`;
+      }
+
+      let html = `<div class="checkin-result ${resultClass}">`;
+      html += `<div class="checkin-result-icon">${icon}</div>`;
+      html += `<div class="checkin-result-title">${title}</div>`;
+
+      if (d.errorType || d.user_name || d.member_name) {
+        html += '<div class="checkin-result-info">';
+        if (d.errorType) {
+          html += renderErrorInfo(d);
+        }
+        if (d.user_name || d.member_name || d.name) {
+          html += renderMemberBasicInfo(d);
+        }
+        html += courseInfo;
+        if (data.success && !data.alreadyCheckedIn) {
+          html += `<div style="margin-top:4px;">已扣除1次团课</div>`;
+        }
+        if (d.member_cards && d.member_cards.length) {
+          html += renderMemberCards(d.member_cards);
+        }
+        if (d.recent_checkins && d.recent_checkins.length) {
+          html += renderRecentCheckins(d.recent_checkins);
+        }
+        html += '</div>';
+      } else if (courseInfo) {
+        html += `<div class="checkin-result-info">${courseInfo}</div>`;
+      }
+
+      html += '</div>';
+      resultEl.innerHTML = html;
+    }
+
     async function scanBookingCheckin() {
       const code = document.getElementById('scanCode').value.trim();
       const resultEl = document.getElementById('scanResult');
@@ -1012,46 +1350,15 @@
           body: JSON.stringify({ code })
         });
 
+        renderScanResult(data);
+        
         if (data.success) {
-          resultEl.style.display = 'block';
-          
-          if (data.alreadyCheckedIn) {
-            resultEl.innerHTML = `
-              <div class="checkin-result warning">
-                <div class="checkin-result-icon">⚠️</div>
-                <div class="checkin-result-title">已签到</div>
-                <div class="checkin-result-info">
-                  <strong>${data.data.user_name}</strong>（${data.data.user_phone || ''}）<br>
-                  ${data.data.course_name} · ${data.data.course_date} ${data.data.course_time}<br>
-                  签到时间：${data.data.checkin_time}
-                </div>
-              </div>
-            `;
-          } else {
-            resultEl.innerHTML = `
-              <div class="checkin-result success">
-                <div class="checkin-result-icon">✅</div>
-                <div class="checkin-result-title">签到成功</div>
-                <div class="checkin-result-info">
-                  <strong>${data.data.user_name}</strong>（${data.data.user_phone || ''}）<br>
-                  ${data.data.course_name} · ${data.data.course_date} ${data.data.course_time}<br>
-                  已扣除1次团课
-                </div>
-              </div>
-            `;
-          }
-          
           document.getElementById('scanCode').value = '';
           loadScanHistory();
-          
-          setTimeout(() => {
-            resultEl.style.display = 'none';
-          }, 5000);
-        } else {
-          alert(data.message);
         }
       } catch (error) {
-        alert('扫码签到失败：' + (error.message || '未知错误'));
+        const fake = { success: false, message: '扫码签到失败', data: { errorType: 'invalid_code' } };
+        renderScanResult(fake);
       }
     }
 
@@ -1296,6 +1603,156 @@
           const a = document.createElement('a');
           a.href = url;
           a.download = `课表出席统计_${startDate}_${endDate}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        } else {
+          alert('导出失败');
+        }
+      } catch (error) {
+        alert('导出失败');
+      }
+    }
+
+    async function loadMembersForStatsDropdown() {
+      try {
+        const data = await apiCall('/members?pageSize=200');
+        const select = document.getElementById('memberStatsMemberSelect');
+        if (!select) return;
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">全部会员</option>';
+        const list = data.data && data.data.list ? data.data.list : (data.data || []);
+        list.forEach(m => {
+          const option = document.createElement('option');
+          option.value = m.id || m.user_id;
+          option.textContent = `${m.name || m.user_name || ''} ${m.phone || m.user_phone || ''}`;
+          select.appendChild(option);
+        });
+        if (currentVal) select.value = currentVal;
+      } catch (error) {
+        console.error('加载会员下拉失败', error);
+      }
+    }
+
+    function renderMemberStatsSummary(summary) {
+      if (!summary) return;
+      const s = summary;
+      const attendanceRate = s.total_booked > 0 ? Math.round((s.total_checked / s.total_booked) * 100) : 0;
+      const html = `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="label">总预约</div>
+            <div class="value">${s.total_booked || 0}</div>
+          </div>
+          <div class="stat-card success">
+            <div class="label">已签到</div>
+            <div class="value">${s.total_checked || 0}</div>
+          </div>
+          <div class="stat-card error">
+            <div class="label">爽约</div>
+            <div class="value">${s.total_missed || 0}</div>
+          </div>
+          <div class="stat-card warning">
+            <div class="label">已取消</div>
+            <div class="value">${s.total_cancelled || 0}</div>
+          </div>
+          <div class="stat-card info">
+            <div class="label">候补</div>
+            <div class="value">${s.total_waitlist || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">出席率</div>
+            <div class="value">${attendanceRate}%</div>
+          </div>
+        </div>
+      `;
+      document.getElementById('memberStatsSummary').innerHTML = html;
+    }
+
+    function renderMemberStatsList(list, member) {
+      const listEl = document.getElementById('memberStatsList');
+      if (!list || list.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">暂无数据</div>';
+        return;
+      }
+
+      const statusMap = {
+        booked: { label: '已预约', cls: 'badge-info' },
+        checked_in: { label: '已签到', cls: 'badge-success' },
+        missed: { label: '爽约', cls: 'badge-error' },
+        cancelled: { label: '已取消', cls: 'badge-default' },
+        waitlist: { label: '候补', cls: 'badge-warning' }
+      };
+
+      let html = '<table><thead><tr><th>会员</th><th>日期</th><th>课程</th><th>教练</th><th>教室</th><th>状态</th><th>签到时间</th><th>签到方式</th><th>使用卡种</th><th>扣次后剩余</th></tr></thead><tbody>';
+      
+      list.forEach(b => {
+        const st = statusMap[b.status] || { label: b.status || '-', cls: 'badge-default' };
+        const memberName = b.member_name || b.user_name || (member && member.name) || '-';
+        html += `
+          <tr>
+            <td>${memberName}</td>
+            <td>${b.course_date || b.date || '-'}</td>
+            <td>${b.course_name || b.name || '-'}</td>
+            <td>${b.coach_name || '-'}</td>
+            <td>${b.room || '-'}</td>
+            <td><span class="badge ${st.cls}">${st.label}</span></td>
+            <td>${b.checkin_time || '-'}</td>
+            <td>${b.checkin_method ? (b.checkin_method === 'scan' ? '扫码' : b.checkin_method === 'manual' ? '手动' : b.checkin_method) : '-'}</td>
+            <td>${b.card_name || b.used_card || '-'}</td>
+            <td>${typeof b.remaining_after === 'number' ? b.remaining_after : (typeof b.remaining === 'number' ? b.remaining : '-')}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      listEl.innerHTML = html;
+    }
+
+    async function loadMemberStats() {
+      const memberId = document.getElementById('memberStatsMemberSelect').value;
+      const startDate = document.getElementById('memberStatsStartDate').value;
+      const endDate = document.getElementById('memberStatsEndDate').value;
+
+      const params = new URLSearchParams();
+      if (memberId) params.append('memberId', memberId);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      const qs = params.toString();
+
+      try {
+        const data = await apiCall(`/stats/member-bookings${qs ? '?' + qs : ''}`);
+        const resp = data.data || data;
+        renderMemberStatsSummary(resp.summary);
+        renderMemberStatsList(resp.list, resp.member);
+      } catch (error) {
+        console.error('加载会员明细失败', error);
+        document.getElementById('memberStatsSummary').innerHTML = '<div class="empty-state">加载失败</div>';
+        document.getElementById('memberStatsList').innerHTML = '<div class="empty-state">加载失败</div>';
+      }
+    }
+
+    async function exportMemberStats() {
+      const memberId = document.getElementById('memberStatsMemberSelect').value;
+      const startDate = document.getElementById('memberStatsStartDate').value;
+      const endDate = document.getElementById('memberStatsEndDate').value;
+
+      const params = new URLSearchParams();
+      if (memberId) params.append('memberId', memberId);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      const qs = params.toString();
+
+      try {
+        const res = await fetch(`${API_BASE}/stats/member-bookings/export${qs ? '?' + qs : ''}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `会员预约明细_${startDate || 'all'}_${endDate || 'all'}.xlsx`;
           a.click();
           window.URL.revokeObjectURL(url);
         } else {

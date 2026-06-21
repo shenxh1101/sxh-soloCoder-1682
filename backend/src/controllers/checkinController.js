@@ -358,7 +358,7 @@ const scanBookingCheckin = (req, res) => {
   const operatorId = req.user?.id;
 
   if (!code) {
-    return res.status(400).json({ success: false, message: '签到码无效' });
+    return res.status(400).json({ success: false, message: '签到码无效', errorType: 'invalid_code' });
   }
 
   const booking = db.prepare(`
@@ -371,14 +371,48 @@ const scanBookingCheckin = (req, res) => {
   `).get(code);
   
   if (!booking) {
-    return res.status(404).json({ success: false, message: '预约码无效或不存在' });
+    return res.status(404).json({ success: false, message: '预约码无效或不存在', errorType: 'invalid_code' });
   }
+
+  const userCards = db.prepare(
+    "SELECT * FROM membership_cards WHERE user_id = ? AND status = 'active' ORDER BY remaining_classes DESC"
+  ).all(booking.user_id);
+  const totalRemaining = userCards.reduce((sum, c) => sum + c.remaining_classes, 0);
+
+  const recentCheckins = db.prepare(`
+    SELECT ch.*, c.name as course_name, c.date, c.start_time, mc.name as card_name
+    FROM checkins ch
+    LEFT JOIN courses c ON ch.course_id = c.id
+    LEFT JOIN membership_cards mc ON ch.card_id = mc.id
+    WHERE ch.user_id = ?
+    ORDER BY ch.checkin_time DESC
+    LIMIT 5
+  `).all(booking.user_id);
 
   if (booking.status === 'cancelled') {
-    return res.status(400).json({ success: false, message: '该预约已取消' });
+    return res.status(400).json({ 
+      success: false, 
+      message: '该预约已取消',
+      errorType: 'cancelled',
+      data: {
+        user_name: booking.user_name,
+        user_phone: booking.phone,
+        course_name: booking.course_name,
+        course_date: booking.date,
+        course_time: `${booking.start_time}-${booking.end_time}`,
+        total_remaining: totalRemaining,
+        member_cards: userCards,
+        recent_checkins: recentCheckins
+      }
+    });
   }
 
-  const existingCheckin = db.prepare('SELECT id, checkin_time FROM checkins WHERE booking_id = ?').get(booking.id);
+  const existingCheckin = db.prepare(`
+    SELECT ch.*, mc.name as card_name
+    FROM checkins ch
+    LEFT JOIN membership_cards mc ON ch.card_id = mc.id
+    WHERE ch.booking_id = ?
+  `).get(booking.id);
   
   if (existingCheckin) {
     return res.json({ 
@@ -394,13 +428,31 @@ const scanBookingCheckin = (req, res) => {
         course_date: booking.date,
         course_time: `${booking.start_time}-${booking.end_time}`,
         room: booking.room,
-        checkin_time: existingCheckin.checkin_time
+        checkin_time: existingCheckin.checkin_time,
+        checkin_method: existingCheckin.checkin_method,
+        card_name: existingCheckin.card_name,
+        total_remaining: totalRemaining,
+        member_cards: userCards,
+        recent_checkins: recentCheckins
       }
     });
   }
 
   if (booking.status !== 'booked' && booking.status !== 'waitlist') {
-    return res.status(400).json({ success: false, message: '该预约状态无法签到' });
+    return res.status(400).json({ 
+      success: false, 
+      message: '该预约状态无法签到', 
+      errorType: 'invalid_status',
+      data: {
+        user_name: booking.user_name,
+        user_phone: booking.phone,
+        course_name: booking.course_name,
+        status: booking.status,
+        total_remaining: totalRemaining,
+        member_cards: userCards,
+        recent_checkins: recentCheckins
+      }
+    });
   }
 
   const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(booking.course_id);
@@ -408,11 +460,56 @@ const scanBookingCheckin = (req, res) => {
   const now = dayjs();
   
   if (now.isBefore(courseDate.subtract(30, 'minute'))) {
-    return res.status(400).json({ success: false, message: '开课前30分钟才可签到' });
+    return res.status(400).json({ 
+      success: false, 
+      message: '开课前30分钟才可签到',
+      errorType: 'not_time_yet',
+      data: {
+        user_name: booking.user_name,
+        user_phone: booking.phone,
+        course_name: booking.course_name,
+        course_date: booking.date,
+        course_time: `${booking.start_time}-${booking.end_time}`,
+        open_checkin_time: courseDate.subtract(30, 'minute').format('YYYY-MM-DD HH:mm'),
+        total_remaining: totalRemaining,
+        member_cards: userCards,
+        recent_checkins: recentCheckins
+      }
+    });
   }
   
   if (now.isAfter(courseDate.add(1, 'hour'))) {
-    return res.status(400).json({ success: false, message: '课程已结束，无法签到' });
+    return res.status(400).json({ 
+      success: false, 
+      message: '课程已结束，无法签到',
+      errorType: 'course_ended',
+      data: {
+        user_name: booking.user_name,
+        user_phone: booking.phone,
+        course_name: booking.course_name,
+        course_date: booking.date,
+        course_time: `${booking.start_time}-${booking.end_time}`,
+        total_remaining: totalRemaining,
+        member_cards: userCards,
+        recent_checkins: recentCheckins
+      }
+    });
+  }
+
+  if (totalRemaining <= 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: '剩余团课次数不足',
+      errorType: 'no_remaining_classes',
+      data: {
+        user_name: booking.user_name,
+        user_phone: booking.phone,
+        course_name: booking.course_name,
+        total_remaining: 0,
+        member_cards: userCards,
+        recent_checkins: recentCheckins
+      }
+    });
   }
 
   const checkinId = uuidv4();
@@ -441,16 +538,35 @@ const scanBookingCheckin = (req, res) => {
   const result = transaction();
 
   if (!result.success) {
-    return res.status(400).json({ success: false, message: result.message });
+    return res.status(400).json({ 
+      success: false, 
+      message: result.message,
+      errorType: 'deduct_failed',
+      data: {
+        user_name: booking.user_name,
+        user_phone: booking.phone,
+        course_name: booking.course_name,
+        total_remaining: totalRemaining,
+        member_cards: userCards,
+        recent_checkins: recentCheckins
+      }
+    });
   }
 
   const checkinRecord = db.prepare(`
-    SELECT ch.*, u.name as user_name, u.phone, u.avatar, c.name as course_name, c.date, c.start_time, c.end_time, c.room
+    SELECT ch.*, u.name as user_name, u.phone, u.avatar, c.name as course_name, c.date, c.start_time, c.end_time, c.room,
+      mc.name as card_name
     FROM checkins ch
     LEFT JOIN users u ON ch.user_id = u.id
     LEFT JOIN courses c ON ch.course_id = c.id
+    LEFT JOIN membership_cards mc ON ch.card_id = mc.id
     WHERE ch.id = ?
   `).get(checkinId);
+
+  const updatedCards = db.prepare(
+    "SELECT * FROM membership_cards WHERE user_id = ? AND status = 'active' ORDER BY remaining_classes DESC"
+  ).all(booking.user_id);
+  const updatedRemaining = updatedCards.reduce((sum, c) => sum + c.remaining_classes, 0);
 
   res.json({
     success: true,
@@ -465,7 +581,12 @@ const scanBookingCheckin = (req, res) => {
       course_time: `${checkinRecord.start_time}-${checkinRecord.end_time}`,
       room: checkinRecord.room,
       checkin_time: checkinRecord.checkin_time,
-      card_id: result.cardId
+      checkin_method: checkinRecord.checkin_method,
+      card_id: result.cardId,
+      card_name: checkinRecord.card_name,
+      total_remaining: updatedRemaining,
+      member_cards: updatedCards,
+      recent_checkins: recentCheckins
     }
   });
 };

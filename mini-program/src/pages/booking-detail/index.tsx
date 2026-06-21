@@ -49,6 +49,10 @@ const BookingDetailPage: React.FC = () => {
   const checkinInfo = detail?.checkin_info || null;
   const transaction = checkinInfo?.transaction || null;
 
+  const handleGoToCards = () => {
+    Taro.navigateTo({ url: '/pages/my-cards/index' });
+  };
+
   return (
     <View className={styles.page}>
       <ScrollView scrollY>
@@ -157,7 +161,13 @@ const BookingDetailPage: React.FC = () => {
                   <>
                     <View className={styles.infoRow}>
                       <Text className={styles.infoLabel}>使用卡种</Text>
-                      <Text className={styles.infoValue}>{checkinInfo.card_name}</Text>
+                      <Text 
+                        className={styles.infoValue}
+                        style={{ color: '#FF6B35' }}
+                        onClick={handleGoToCards}
+                      >
+                        {checkinInfo.card_name} →
+                      </Text>
                     </View>
                     <View className={styles.infoRow}>
                       <Text className={styles.infoLabel}>扣减次数</Text>

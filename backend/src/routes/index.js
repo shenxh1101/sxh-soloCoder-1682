@@ -31,7 +31,9 @@ const {
   getWeeklyStats, 
   getCoachStats,
   exportWeeklyStats,
-  getMemberStats
+  getMemberStats,
+  getFilteredMemberBookings,
+  exportFilteredMemberBookings
 } = require('../controllers/statsController');
 const { 
   getProfile, 
@@ -73,6 +75,8 @@ router.get('/stats/weekly', authMiddleware, adminMiddleware, getWeeklyStats);
 router.get('/stats/coaches', authMiddleware, adminMiddleware, getCoachStats);
 router.get('/stats/weekly/export', authMiddleware, adminMiddleware, exportWeeklyStats);
 router.get('/stats/member', authMiddleware, getMemberStats);
+router.get('/stats/member-bookings', authMiddleware, adminMiddleware, getFilteredMemberBookings);
+router.get('/stats/member-bookings/export', authMiddleware, adminMiddleware, exportFilteredMemberBookings);
 
 router.get('/user/profile', authMiddleware, getProfile);
 router.put('/user/profile', authMiddleware, updateProfile);

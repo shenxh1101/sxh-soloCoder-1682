@@ -28,16 +28,20 @@ const BookingsPage: React.FC = () => {
       setBookings(list.map((b: any) => ({
         id: b.id,
         courseId: b.course_id,
-        courseName: b.course_name,
-        courseDate: b.course_date,
-        startTime: b.start_time,
-        endTime: b.end_time,
-        coachName: b.coach_name,
-        coachAvatar: b.coach_avatar,
-        room: b.room,
-        status: b.status,
+        courseName: b.course_name || '课程',
+        courseDate: b.course_date || b.date || '',
+        startTime: b.start_time || '',
+        endTime: b.end_time || '',
+        coachName: b.coach_name || '待定',
+        coachAvatar: b.coach_avatar || '',
+        room: b.room || '',
+        status: b.has_checked_in === 1 ? 'checked_in' : b.status,
         waitlistPosition: b.waitlist_position,
-        bookedAt: b.booked_at
+        bookedAt: b.booked_at || '',
+        hasCheckedIn: b.has_checked_in,
+        checkinTime: b.checkin_time,
+        checkinMethod: b.checkin_method,
+        cancelledAt: b.cancelled_at
       })));
     } catch (error) {
       console.error('Load bookings error:', error);

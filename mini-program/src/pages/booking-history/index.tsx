@@ -20,7 +20,17 @@ export default function BookingHistory() {
     setLoading(true);
     try {
       const data = await bookingAPI.getBookings(status);
-      setBookings(data.list || data || []);
+      const raw = data.list || data || [];
+      setBookings(raw.map((b: any) => ({
+        ...b,
+        course_name: b.course_name || '课程',
+        course_date: b.course_date || b.date || '',
+        start_time: b.start_time || '',
+        end_time: b.end_time || '',
+        coach_name: b.coach_name || '待定',
+        room: b.room || '',
+        status: b.has_checked_in === 1 ? 'checked_in' : b.status
+      })));
     } catch (error) {
       console.error('Load bookings error:', error);
     } finally {
@@ -87,7 +97,8 @@ export default function BookingHistory() {
   const canCancel = (booking: any) => {
     if (booking.status !== 'booked') return false;
     const now = new Date();
-    const courseTime = new Date(`${booking.course_date} ${booking.start_time}`);
+    const dateStr = booking.course_date || booking.date;
+    const courseTime = new Date(`${dateStr} ${booking.start_time}`);
     const diffHours = (courseTime.getTime() - now.getTime()) / (1000 * 60 * 60);
     return diffHours > 2;
   };
